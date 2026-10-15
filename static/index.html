@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人向量知识库</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --border: #e4e6ea;
+    --text: #1f2329; --muted: #6b7078; --accent: #2563eb; --accent-soft: #eef3fe;
+    --ok: #16a34a; --warn: #d97706; --err: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center; gap: 14px;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  .status { font-size: 12px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+  .status.ok { color: var(--ok); border-color: #bbe5c8; background: #f0fbf3; }
+  .status.bad { color: var(--err); border-color: #f3c4c4; background: #fdf2f2; }
+  main { max-width: 860px; margin: 24px auto; padding: 0 20px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tabs button {
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    padding: 8px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px;
+  }
+  .tabs button.active { color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: 600; background: var(--card); }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 0 12px 12px 12px; padding: 22px; }
+  .row { display: flex; gap: 10px; }
+  input[type=text], input[type=number] {
+    flex: 1; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 14px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-size: 14px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:disabled { background: #a8bde8; cursor: not-allowed; }
+  .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+  .opt { display: flex; align-items: center; gap: 14px; margin-top: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .opt input[type=number] { flex: 0 0 70px; padding: 6px 10px; }
+  .opt label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  #answer {
+    background: var(--accent-soft); border: 1px solid #d5e3fa; border-radius: 10px;
+    padding: 14px 16px; margin-top: 16px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; display: none;
+  }
+  .hit {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    margin-top: 12px; font-size: 13px; line-height: 1.8;
+  }
+  .hit .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; gap: 10px; align-items: center; }
+  .hit .score { color: var(--accent); font-weight: 600; }
+  .hit .src { color: var(--text); background: #f0f1f3; border-radius: 4px; padding: 1px 8px; }
+  .hit .text { white-space: pre-wrap; word-break: break-word; }
+  .spin {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid #c7d6f5;
+    border-top-color: var(--accent); border-radius: 50%; animation: r 0.8s linear infinite;
+  }
+  @keyframes r { to { transform: rotate(360deg); } }
+  #buildLog {
+    background: #1e2229; color: #cfd6e0; font-family: Consolas, monospace; font-size: 12px;
+    border-radius: 10px; padding: 14px 16px; margin-top: 16px; height: 300px;
+    overflow-y: auto; white-space: pre-wrap; display: none;
+  }
+  .dirrow { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+  .dirrow input { flex: 1; }
+  .stat { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .empty { text-align: center; color: var(--muted); font-size: 13px; padding: 30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>个人向量知识库</h1>
+  <span id="mStatus" class="status">检测中…</span>
+  <span id="rowsInfo" class="status"></span>
+  <span class="stat" id="modelInfo"></span>
+</header>
+<main>
+  <div class="tabs">
+    <button id="tabQ" class="active" onclick="switchTab('q')">检索问答</button>
+    <button id="tabB" onclick="switchTab('b')">知识入库</button>
+  </div>
+
+  <div class="panel" id="panelQ">
+    <div class="row">
+      <input type="text" id="q" placeholder="输入问题, 例如: MediaCrawler 的整体架构是怎样的?" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn" id="btnSearch" onclick="doSearch()">检索</button>
+    </div>
+    <div class="opt">
+      <label><input type="checkbox" id="askLlm"> 调用 LLM 生成回答 (需配置环境变量 KB_LLM_*)</label>
+      <label>返回条数 <input type="number" id="topk" value="5" min="1" max="20"></label>
+    </div>
+    <div id="loading" style="display:none;margin-top:16px;font-size:13px;color:var(--muted);">
+      <span class="spin"></span> 检索中…
+    </div>
+    <div id="answer"></div>
+    <div id="hits"></div>
+  </div>
+
+  <div class="panel" id="panelB" style="display:none">
+    <div class="dirrow">
+      <input type="text" id="docDir" placeholder="文档目录">
+      <button class="btn" id="btnBuild" onclick="doBuild()">开始入库</button>
+      <button class="btn ghost" id="btnReset" onclick="doBuild(true)">清空重建</button>
+    </div>
+    <div class="hint">
+      支持 .md / .txt / .py / .html, 自动跳过 .git、node_modules 等目录。增量入库: 文件内容未变化时自动跳过, 变化后自动更新对应向量。
+    </div>
+    <div id="buildLog"></div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let buildTimer = null;
+
+function switchTab(t) {
+  $('tabQ').classList.toggle('active', t === 'q');
+  $('tabB').classList.toggle('active', t !== 'q');
+  $('panelQ').style.display = t === 'q' ? '' : 'none';
+  $('panelB').style.display = t === 'q' ? 'none' : '';
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const s = await r.json();
+    const el = $('mStatus');
+    el.textContent = 'Milvus: ' + s.milvus;
+    el.className = 'status ' + (s.milvus.startsWith('已连接') ? 'ok' : 'bad');
+    $('rowsInfo').textContent = s.rows !== undefined ? ('知识条数: ' + s.rows) : '';
+    $('modelInfo').textContent = '模型: ' + s.model;
+    if (!s.docDir || !$('docDir').value) $('docDir').value = s.docDir || '';
+  } catch (e) {
+    $('mStatus').textContent = '服务异常';
+    $('mStatus').className = 'status bad';
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+async function doSearch() {
+  const q = $('q').value.trim();
+  if (!q) return;
+  $('loading').style.display = '';
+  $('hits').innerHTML = '';
+  $('answer').style.display = 'none';
+  $('btnSearch').disabled = true;
+  try {
+    const r = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, k: +$('topk').value || 5, ask_llm: $('askLlm').checked })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || '检索失败');
+    if (data.answer) {
+      $('answer').style.display = '';
+      $('answer').textContent = data.answer;
+    }
+    if (!data.hits.length) {
+      $('hits').innerHTML = '<div class="empty">没有检索到相关内容</div>';
+    } else {
+      $('hits').innerHTML = data.hits.map((h, i) => `
+        <div class="hit">
+          <div class="meta">
+            <span class="score">[${i + 1}] 相关度 ${h.score}</span>
+            <span class="src">${esc(h.source)} · 块 ${h.chunk_id}</span>
+          </div>
+          <div class="text">${esc(h.text)}</div>
+        </div>`).join('');
+    }
+  } catch (e) {
+    $('hits').innerHTML = `<div class="empty" style="color:var(--err)">${esc(String(e.message || e))}</div>`;
+  } finally {
+    $('loading').style.display = 'none';
+    $('btnSearch').disabled = false;
+  }
+}
+
+async function doBuild(reset = false) {
+  const dir = $('docDir').value.trim();
+  if (!dir) { alert('请填写文档目录'); return; }
+  $('btnBuild').disabled = true;
+  $('btnReset').disabled = true;
+  $('buildLog').style.display = '';
+  $('buildLog').textContent = '';
+  try {
+    const r = await fetch('/api/build', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dir, reset })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || '启动失败');
+    buildTimer = setInterval(pollBuild, 800);
+  } catch (e) {
+    $('buildLog').textContent = '出错: ' + (e.message || e);
+    $('btnBuild').disabled = false;
+    $('btnReset').disabled = false;
+  }
+}
+
+async function pollBuild() {
+  try {
+    const r = await fetch('/api/build/status');
+    const s = await r.json();
+    $('buildLog').textContent = s.log.join('\n');
+    $('buildLog').scrollTop = $('buildLog').scrollHeight;
+    if (!s.running) {
+      clearInterval(buildTimer);
+      $('btnBuild').disabled = false;
+      $('btnReset').disabled = false;
+      if (s.error) $('buildLog').textContent += '\n[任务失败] ' + s.error;
+      loadStatus();
+    }
+  } catch (e) { /* 忽略轮询错误 */ }
+}
+
+loadStatus();
+setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>

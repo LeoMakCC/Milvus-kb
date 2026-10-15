@@ -1,0 +1,17 @@
+# KnowledgeQA
+
+Windows-first portable knowledge base QA desktop application.
+
+## Development
+
+```powershell
+& "$env:APPDATA\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe" -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest
+```
+
+## M0 Run
+
+```powershell
+.\.venv\Scripts\python.exe -m knowledgeqa.desktop
+```
