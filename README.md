@@ -15,3 +15,11 @@ Windows-first portable knowledge base QA desktop application.
 ```powershell
 .\.venv\Scripts\python.exe -m knowledgeqa.desktop
 ```
+
+## Manual Smoke Test
+
+```powershell
+.\scripts\run_dev.ps1
+```
+
+Expected: a desktop window opens, status shows "已运行", and closing the window exits the backend without leaving the lock file held.
