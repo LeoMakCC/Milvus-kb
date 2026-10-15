@@ -43,3 +43,16 @@ def test_status_endpoint(portable_root) -> None:
 
     assert response.status_code == 200
     assert response.json() == status_provider()
+
+
+def test_root_serves_desktop_page(portable_root) -> None:
+    app = create_app(
+        settings=Settings(),
+        paths=AppPaths(portable_root=portable_root),
+        status_provider=status_provider,
+    )
+
+    response = asyncio.run(get(app, "/"))
+
+    assert response.status_code == 200
+    assert "KnowledgeQA" in response.text
