@@ -1,6 +1,6 @@
 # KnowledgeQA M0 Desktop Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a runnable Windows desktop foundation with Python 3.12, FastAPI health/status endpoints, single-instance protection, safe exit coordination, a pywebview shell, and a basic static UI.
 
@@ -45,7 +45,7 @@
 - Create: `src/knowledgeqa/__init__.py`
 - Create: `tests/conftest.py`
 
-- [ ] **Step 1: Create project metadata**
+- [x] **Step 1: Create project metadata**
 
 Create `pyproject.toml` with Python 3.12, setuptools, runtime dependencies, dev dependencies, package discovery, and pytest configuration.
 
@@ -90,7 +90,7 @@ testpaths = ["tests"]
 addopts = "-q"
 ```
 
-- [ ] **Step 2: Create ignore rules and package marker**
+- [x] **Step 2: Create ignore rules and package marker**
 
 Create `.gitignore`:
 
@@ -133,7 +133,7 @@ def portable_root(tmp_path: Path) -> Path:
     return root
 ```
 
-- [ ] **Step 3: Create README**
+- [x] **Step 3: Create README**
 
 Create `README.md`:
 
@@ -157,7 +157,7 @@ Windows-first portable knowledge base QA desktop application.
 ```
 ```
 
-- [ ] **Step 4: Create and install the environment**
+- [x] **Step 4: Create and install the environment**
 
 Run:
 
@@ -168,7 +168,7 @@ Run:
 
 Expected: editable install completes and `pytest --version` prints a version.
 
-- [ ] **Step 5: Run test discovery**
+- [x] **Step 5: Run test discovery**
 
 Run:
 
@@ -178,7 +178,7 @@ Run:
 
 Expected: no tests found, exit code 5. This is expected for bootstrap.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add pyproject.toml .gitignore README.md src tests docs
@@ -193,7 +193,7 @@ git commit -m "chore: bootstrap KnowledgeQA package"
 - Create: `tests/unit/test_config.py`
 - Create: `src/knowledgeqa/config.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/unit/test_config.py`:
 
@@ -229,7 +229,7 @@ def test_settings_default_host_and_port() -> None:
     assert settings.lan_enabled is False
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -239,7 +239,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.config'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/knowledgeqa/config.py`:
 
@@ -297,7 +297,7 @@ class Settings:
     lan_enabled: bool = False
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -307,7 +307,7 @@ Run:
 
 Expected: 3 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/config.py tests/unit/test_config.py
@@ -325,7 +325,7 @@ git commit -m "feat: add portable path configuration"
 - Create: `src/knowledgeqa/api/routes/__init__.py`
 - Create: `src/knowledgeqa/api/routes/health.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/integration/test_health_api.py`:
 
@@ -373,7 +373,7 @@ def test_status_endpoint(portable_root) -> None:
     assert response.json() == status_provider()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -383,7 +383,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.api'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/knowledgeqa/api/__init__.py`:
 
@@ -444,7 +444,7 @@ def create_app(
     return app
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -454,7 +454,7 @@ Run:
 
 Expected: 2 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/api tests/integration/test_health_api.py
@@ -469,7 +469,7 @@ git commit -m "feat: add health and status API"
 - Create: `tests/unit/test_instance_lock.py`
 - Create: `src/knowledgeqa/instance_lock.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/unit/test_instance_lock.py`:
 
@@ -499,7 +499,7 @@ def test_second_lock_is_rejected_until_first_releases(tmp_path: Path) -> None:
     second.release()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -509,7 +509,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.instance_lock'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/knowledgeqa/instance_lock.py`:
 
@@ -545,7 +545,7 @@ class InstanceLock:
         self._file = None
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -555,7 +555,7 @@ Run:
 
 Expected: 2 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/instance_lock.py tests/unit/test_instance_lock.py
@@ -570,7 +570,7 @@ git commit -m "feat: add single-instance lock"
 - Create: `tests/unit/test_lifecycle.py`
 - Create: `src/knowledgeqa/lifecycle.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/unit/test_lifecycle.py`:
 
@@ -602,7 +602,7 @@ def test_exit_with_jobs_can_cancel_exit() -> None:
     assert coordinator.decide(choice_provider=lambda: ExitChoice.CANCEL) == ExitDecision.CANCEL_EXIT
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -612,7 +612,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.lifecycle'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/knowledgeqa/lifecycle.py`:
 
@@ -652,7 +652,7 @@ class ExitCoordinator:
         return ExitDecision.CANCEL_EXIT
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -662,7 +662,7 @@ Run:
 
 Expected: 4 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/lifecycle.py tests/unit/test_lifecycle.py
@@ -677,7 +677,7 @@ git commit -m "feat: add exit decision coordinator"
 - Create: `tests/unit/test_server.py`
 - Create: `src/knowledgeqa/server.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/unit/test_server.py`:
 
@@ -719,7 +719,7 @@ def test_server_runner_starts_and_stops(portable_root) -> None:
     assert runner.is_running is False
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -729,7 +729,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.server'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/knowledgeqa/server.py`:
 
@@ -784,7 +784,7 @@ class ServerRunner:
         self._thread.join(timeout=5)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -794,7 +794,7 @@ Run:
 
 Expected: 1 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/server.py tests/unit/test_server.py
@@ -813,7 +813,7 @@ git commit -m "feat: add uvicorn server runner"
 - Modify: `src/knowledgeqa/api/app.py`
 - Modify: `tests/integration/test_health_api.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Modify `tests/integration/test_health_api.py` by adding:
 
@@ -840,7 +840,7 @@ Run:
 
 Expected: FAIL with 404 for `/`.
 
-- [ ] **Step 2: Add static page files**
+- [x] **Step 2: Add static page files**
 
 Create `src/knowledgeqa/web/index.html`:
 
@@ -934,7 +934,7 @@ refreshStatus();
 setInterval(refreshStatus, 5000);
 ```
 
-- [ ] **Step 3: Modify API app to serve static files**
+- [x] **Step 3: Modify API app to serve static files**
 
 Replace `src/knowledgeqa/api/app.py` with:
 
@@ -970,7 +970,7 @@ def create_app(
     return app
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -980,7 +980,7 @@ Run:
 
 Expected: 3 passed.
 
-- [ ] **Step 5: Create desktop entry point**
+- [x] **Step 5: Create desktop entry point**
 
 Create `src/knowledgeqa/desktop.py`:
 
@@ -1049,7 +1049,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 Run:
 
@@ -1059,7 +1059,7 @@ Run:
 
 Expected: all tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add src/knowledgeqa tests
@@ -1074,7 +1074,7 @@ git commit -m "feat: add desktop shell and static UI"
 - Create: `scripts/run_dev.ps1`
 - Modify: `README.md`
 
-- [ ] **Step 1: Create a smoke script**
+- [x] **Step 1: Create a smoke script**
 
 Create `scripts/run_dev.ps1`:
 
@@ -1090,7 +1090,7 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 .\.venv\Scripts\python.exe -m knowledgeqa.desktop
 ```
 
-- [ ] **Step 2: Update README with smoke instructions**
+- [x] **Step 2: Update README with smoke instructions**
 
 Append to `README.md`:
 
@@ -1104,7 +1104,7 @@ Append to `README.md`:
 Expected: a desktop window opens, status shows "已运行", and closing the window exits the backend without leaving the lock file held.
 ```
 
-- [ ] **Step 3: Verify tests**
+- [x] **Step 3: Verify tests**
 
 Run:
 
@@ -1114,7 +1114,7 @@ Run:
 
 Expected: all tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add scripts README.md
