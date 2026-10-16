@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import re
 
-from knowledgeqa.ingestion.models import DocumentChunk, ParsedDocument
+from knowledgeqa.ingestion.models import (
+    DocumentChunk,
+    ParsedDocument,
+    ParsedSection,
+)
 
 HEADING_SPLIT_RE = re.compile(r"(?m)(?=^#{1,4}\s)")
 HEADING_RE = re.compile(r"^(#{1,4}\s+.+?)\s*$")
@@ -12,6 +16,15 @@ def _section_name(text: str) -> str | None:
     first_line = text.splitlines()[0].strip()
     match = HEADING_RE.match(first_line)
     return match.group(1).strip() if match else None
+
+
+def _markdown_sections(text: str) -> list[ParsedSection]:
+    sections = [section.strip() for section in HEADING_SPLIT_RE.split(text)]
+    return [
+        ParsedSection(text=section, section=_section_name(section))
+        for section in sections
+        if section
+    ]
 
 
 def chunk_document(
@@ -24,18 +37,21 @@ def chunk_document(
     if overlap < 0 or overlap >= max_chars:
         raise ValueError("overlap must be between 0 and max_chars")
 
-    sections = [section.strip() for section in HEADING_SPLIT_RE.split(document.text)]
+    source_sections = document.sections or _markdown_sections(document.text)
     chunks: list[DocumentChunk] = []
-    for section_text in sections:
+    for source_section in source_sections:
+        section_text = source_section.text.strip()
         if not section_text:
             continue
-        section = _section_name(section_text)
+        section = source_section.section or _section_name(section_text)
+        page_no = source_section.page_no
         if len(section_text) <= max_chars:
             chunks.append(
                 DocumentChunk(
                     chunk_index=len(chunks),
                     text=section_text,
                     section=section,
+                    page_no=page_no,
                 )
             )
             continue
@@ -52,6 +68,7 @@ def chunk_document(
                     chunk_index=len(chunks),
                     text=piece,
                     section=section,
+                    page_no=page_no,
                 )
             )
     return chunks
