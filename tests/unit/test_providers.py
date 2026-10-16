@@ -1,6 +1,7 @@
 import json
 
 from knowledgeqa.providers.base import ChatMessage, ChatRequest
+from knowledgeqa.providers.azure import AzureOpenAIProvider
 from knowledgeqa.providers.openai_compatible import OpenAICompatibleProvider
 
 
@@ -96,3 +97,29 @@ def test_openai_compatible_stream_parses_sse() -> None:
     call = client.calls[0]
     assert call[0] == "stream"
     assert call[4]["stream"] is True
+
+
+def test_azure_provider_builds_deployment_url_and_api_key_header() -> None:
+    client = FakeClient(
+        FakeResponse(
+            payload={"choices": [{"message": {"content": "Azure 回答"}}]}
+        )
+    )
+    provider = AzureOpenAIProvider(
+        endpoint="https://example.openai.azure.com",
+        deployment="knowledge-chat",
+        api_version="2024-02-15-preview",
+        api_key="azure-key",
+        client=client,
+    )
+
+    result = provider.chat(request())
+
+    assert result.text == "Azure 回答"
+    call = client.calls[0]
+    assert call[1] == (
+        "https://example.openai.azure.com/openai/deployments/"
+        "knowledge-chat/chat/completions?api-version=2024-02-15-preview"
+    )
+    assert call[2]["api-key"] == "azure-key"
+    assert "Authorization" not in call[2]
