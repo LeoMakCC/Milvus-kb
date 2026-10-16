@@ -43,3 +43,7 @@ Expected: one Markdown file is ingested, one vector is inserted, and a related q
 - Email: `.eml`, `.mbox`, `.mbx`, `.msg`
 
 Email messages are deduplicated by `Message-ID` when available. Supported attachment formats are parsed and deduplicated by content hash. Unsupported attachments are recorded by file name.
+
+## Retrieval
+
+Search uses Milvus dense vector retrieval plus BM25 sparse retrieval, fused with RRF. An optional HTTP reranker can be configured without changing the indexing pipeline.

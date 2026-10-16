@@ -1,6 +1,6 @@
 # KnowledgeQA M4A Hybrid Search Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add Milvus dense + BM25 hybrid retrieval with RRF and an optional rerank hook.
 
@@ -16,7 +16,7 @@
 - Modify: `src/knowledgeqa/milvus/store.py`
 - Modify: `tests/unit/test_milvus_store.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Assert `hybrid_search`:
 
@@ -28,7 +28,7 @@ sparse request uses anns_field="sparse"
 ranker is RRFRanker
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 from pymilvus import AnnSearchRequest, RRFRanker
@@ -44,7 +44,7 @@ def hybrid_search(
 
 The method calls `client.hybrid_search(collection_name, reqs=[dense_req, sparse_req], ranker=RRFRanker(60), limit=limit, output_fields=[...])`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_milvus_store.py -v
@@ -58,15 +58,15 @@ The method calls `client.hybrid_search(collection_name, reqs=[dense_req, sparse_
 - Modify: `src/knowledgeqa/services/search.py`
 - Modify: `tests/unit/test_search_service.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Fake store defines `hybrid_search` and asserts it is called with the embedded query and raw query text.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Prefer `store.hybrid_search(kb_id, vector, query, limit=limit)`. Fall back to `store.search(...)` when hybrid search is unavailable.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_search_service.py -v
@@ -82,7 +82,7 @@ Prefer `store.hybrid_search(kb_id, vector, query, limit=limit)`. Fall back to `s
 - Modify: `src/knowledgeqa/services/search.py`
 - Modify: `tests/unit/test_search_service.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -91,7 +91,7 @@ Cover:
 - `SearchService` applies reranker only when configured.
 - Reranker failure falls back to the original hit order.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 class Reranker(Protocol):
@@ -127,7 +127,7 @@ Response contract:
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_rerank.py tests/unit/test_search_service.py -v
@@ -140,15 +140,15 @@ Response contract:
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-- [ ] **Step 2: Restart 8788**
+- [x] **Step 2: Restart 8788**
 
-- [ ] **Step 3: Ingest a document containing an exact identifier and a semantic phrase**
+- [x] **Step 3: Ingest a document containing an exact identifier and a semantic phrase**
 
 Use:
 
@@ -158,4 +158,4 @@ Use:
 
 Search for `HT-2024-013` and for `验收后付款`, confirming both return the same source.
 
-- [ ] **Step 4: Clean up the temporary collection and SQLite rows.**
+- [x] **Step 4: Clean up the temporary collection and SQLite rows.**
