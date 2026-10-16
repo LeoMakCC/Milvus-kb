@@ -33,3 +33,12 @@ Requires a running Milvus instance:
 ```
 
 Expected: one Markdown file is ingested, one vector is inserted, and a related query returns at least one hit.
+
+## Supported Documents
+
+- Markdown: `.md`, `.markdown`
+- Text and code: `.txt`, `.log`, `.py`, `.js`, `.ts`, `.java`, `.go`, `.sql`, `.json`, `.yaml`, `.yml`
+- Web and data: `.html`, `.htm`, `.csv`
+- Office: `.pdf`, `.docx`, `.xlsx`, `.xlsm`, `.pptx`
+
+Email formats are added in M3B.

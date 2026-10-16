@@ -1,6 +1,6 @@
 # KnowledgeQA M3A Document Parsers Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Extend ingestion from Markdown-only to common document formats with page and section metadata.
 
@@ -17,11 +17,11 @@
 - Modify: `src/knowledgeqa/ingestion/chunking.py`
 - Modify: `tests/unit/test_markdown_ingestion.py`
 
-- [ ] **Step 1: Add failing assertions**
+- [x] **Step 1: Add failing assertions**
 
 Assert `DocumentChunk.page_no` defaults to `-1`, and a parsed document with two sections produces chunks preserving each section's `page_no`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Add:
 
@@ -51,7 +51,7 @@ class DocumentChunk:
 
 `chunk_document` uses `document.sections` when present, otherwise builds a synthetic section from `document.text`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_markdown_ingestion.py -v
@@ -71,7 +71,7 @@ Expected: all pass.
 - Create: `src/knowledgeqa/parsers/registry.py`
 - Test: `tests/unit/test_document_parsers.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -80,7 +80,7 @@ Cover:
 - `.csv` turns rows into readable lines.
 - unknown extension raises `UnsupportedDocumentError`.
 
-- [ ] **Step 2: Implement parser interface**
+- [x] **Step 2: Implement parser interface**
 
 ```python
 class DocumentParser(Protocol):
@@ -96,7 +96,7 @@ def parse_document(path: Path) -> ParsedDocument: ...
 def supported_extensions() -> set[str]: ...
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_document_parsers.py -v
@@ -117,7 +117,7 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/parsers/registry.py`
 - Test: `tests/unit/test_office_parsers.py`
 
-- [ ] **Step 1: Add dependencies**
+- [x] **Step 1: Add dependencies**
 
 ```toml
 "PyMuPDF>=1.24,<2",
@@ -127,7 +127,7 @@ Expected: all pass.
 "beautifulsoup4>=4.12,<5",
 ```
 
-- [ ] **Step 2: Write failing tests**
+- [x] **Step 2: Write failing tests**
 
 Create temporary files in tests and assert extracted text:
 
@@ -137,7 +137,7 @@ Create temporary files in tests and assert extracted text:
 - PPTX slide text.
 - Scanned PDF without extractable text raises `OcrRequiredError`.
 
-- [ ] **Step 3: Implement parsers**
+- [x] **Step 3: Implement parsers**
 
 Each parser returns a `ParsedDocument` with `sections`.
 
@@ -146,7 +146,7 @@ Each parser returns a `ParsedDocument` with `sections`.
 - XLSX: one section per sheet, rows joined as `header: value`.
 - PPTX: one section per slide.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
@@ -165,7 +165,7 @@ Expected: all pass.
 - Modify: `tests/unit/test_ingestion_service.py`
 - Modify: `tests/integration/test_kb_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Assert:
 
@@ -174,7 +174,7 @@ Assert:
 - chunk rows carry parser `page_no` and `doc_type`.
 - API `/sync` calls `sync_documents`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `IngestionService`:
 
@@ -187,7 +187,7 @@ def sync_markdown(self, kb_id: str, directory: Path) -> SyncResult: ...
 
 The sync route calls `sync_documents` when available, otherwise falls back to `sync_markdown`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_ingestion_service.py tests/integration/test_kb_api.py -v
@@ -204,11 +204,11 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/web/app.js`
 - Modify: `README.md`
 
-- [ ] **Step 1: Change directory field copy**
+- [x] **Step 1: Change directory field copy**
 
 Change UI placeholder from “Markdown 目录” to “文档目录”.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
@@ -216,10 +216,10 @@ Change UI placeholder from “Markdown 目录” to “文档目录”.
 
 Expected: all pass.
 
-- [ ] **Step 3: Restart 8788 and run real document ingestion**
+- [x] **Step 3: Restart 8788 and run real document ingestion**
 
 Create a temporary folder containing one `.txt`, one `.csv`, and one `.docx` file. Use the live API to create a KB, sync the folder, and search. Confirm hits include `source_path`, `page_no`, and text.
 
-- [ ] **Step 4: Clean up temporary Milvus collection and SQLite rows**
+- [x] **Step 4: Clean up temporary Milvus collection and SQLite rows**
 
 Use the same cleanup pattern as the M2A live check.
