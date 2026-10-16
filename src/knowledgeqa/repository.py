@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -397,5 +398,98 @@ class Repository:
                 ORDER BY emails.sent_at, emails.id
                 """,
                 (kb_id, thread_id),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def create_conversation(
+        self,
+        kb_ids: list[str],
+        provider_name: str | None = None,
+        model_name: str | None = None,
+    ) -> dict:
+        conversation_id = uuid4().hex
+        now = _utc_now()
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO conversations(
+                    id, title, kb_ids, provider_name, model_name,
+                    created_at, updated_at
+                ) VALUES (?, '新会话', ?, ?, ?, ?, ?)
+                """,
+                (
+                    conversation_id,
+                    json.dumps(kb_ids, ensure_ascii=False),
+                    provider_name,
+                    model_name,
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        return self.get_conversation(conversation_id)
+
+    def list_conversations(self) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                "SELECT * FROM conversations ORDER BY updated_at DESC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_conversation(self, conversation_id: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM conversations WHERE id = ?",
+                (conversation_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def add_message(
+        self,
+        conversation_id: str,
+        role: str,
+        content: str,
+        citations_json: str | None = None,
+    ) -> dict:
+        message_id = uuid4().hex
+        now = _utc_now()
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO messages(
+                    id, conversation_id, role, content, citations_json,
+                    token_usage_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, NULL, ?)
+                """,
+                (
+                    message_id,
+                    conversation_id,
+                    role,
+                    content,
+                    citations_json,
+                    now,
+                ),
+            )
+            conn.execute(
+                "UPDATE conversations SET updated_at = ? WHERE id = ?",
+                (now, conversation_id),
+            )
+            conn.commit()
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM messages WHERE id = ?",
+                (message_id,),
+            ).fetchone()
+        return dict(row) if row else {}
+
+    def list_messages(self, conversation_id: str) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM messages
+                WHERE conversation_id = ?
+                ORDER BY created_at, rowid
+                """,
+                (conversation_id,),
             ).fetchall()
         return [dict(row) for row in rows]

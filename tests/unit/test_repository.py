@@ -137,3 +137,28 @@ def test_link_email_attachments_and_list_thread(tmp_path: Path) -> None:
     assert repo.get_document_by_source_hash(kb["id"], "attach-hash")["id"] == attachment_document["id"]
     assert repo.list_email_attachments(email_document["id"])[0]["file_name"] == "terms.txt"
     assert repo.list_email_thread(kb["id"], "<thread@example.com>")[0]["message_id"] == "<abc@example.com>"
+
+
+def test_conversation_and_messages(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+
+    conversation = repo.create_conversation(
+        kb_ids=["kb1"],
+        provider_name="test-provider",
+        model_name="test-model",
+    )
+    repo.add_message(conversation["id"], "user", "问题")
+    repo.add_message(
+        conversation["id"],
+        "assistant",
+        "回答",
+        citations_json="[1]",
+    )
+
+    assert repo.list_conversations()[0]["id"] == conversation["id"]
+    assert [
+        message["role"]
+        for message in repo.list_messages(conversation["id"])
+    ] == ["user", "assistant"]
+    assert repo.get_conversation(conversation["id"])["model_name"] == "test-model"
