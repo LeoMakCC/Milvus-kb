@@ -19,12 +19,15 @@ class FakeMilvusClient:
         self.calls.append(("insert", name, rows))
         return {"ids": [101, 102]}
 
+    def flush(self, name: str) -> None:
+        self.calls.append(("flush", name))
+
     def load_collection(self, name: str) -> None:
         self.calls.append(("load_collection", name))
 
-    def search(self, name, data, limit, output_fields, search_params):
+    def search(self, name, data, limit, output_fields, search_params, anns_field=None):
         self.calls.append(
-            ("search", name, data, limit, output_fields, search_params)
+            ("search", name, data, limit, output_fields, search_params, anns_field)
         )
         return [
             [
@@ -80,6 +83,7 @@ def test_insert_chunks_returns_primary_keys() -> None:
     ids = store.insert_chunks("abc", [{"vector": [1.0], "text": "x"}])
 
     assert ids == [101, 102]
+    assert ("flush", "kb_abc") in client.calls
 
 
 def test_search_returns_normalized_hits() -> None:
@@ -102,3 +106,4 @@ def test_search_returns_normalized_hits() -> None:
     ]
     search_call = next(call for call in client.calls if call[0] == "search")
     assert search_call[3] == 3
+    assert search_call[6] == "vector"

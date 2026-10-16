@@ -86,7 +86,7 @@ class IngestionService:
                             "kb_id": kb_id,
                             "document_id": document["id"],
                             "chunk_id": f"{document['id']}:{chunk.chunk_index}",
-                            "page_no": None,
+                            "page_no": -1,
                             "doc_type": "markdown",
                             "source_type": "local_file",
                         }

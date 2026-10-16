@@ -37,7 +37,9 @@ class MilvusStore:
         )
 
     def insert_chunks(self, kb_id: str, rows: list[dict]) -> list[int]:
-        result = self.client.insert(collection_name(kb_id), rows)
+        name = collection_name(kb_id)
+        result = self.client.insert(name, rows)
+        self.client.flush(name)
         return list(result.get("ids") or result.get("primary_keys") or [])
 
     def search(
@@ -64,6 +66,7 @@ class MilvusStore:
                 "metric_type": "COSINE",
                 "params": {"ef": 128},
             },
+            anns_field="vector",
         )
         hits: list[dict] = []
         for hit in results[0]:

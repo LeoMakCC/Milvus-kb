@@ -77,4 +77,5 @@ def test_sync_markdown_inserts_new_file_then_skips_unchanged(tmp_path: Path) -> 
     assert second.skipped == 1
     assert store.ensured == [("kb1", 2)]
     assert len(store.inserted) == 1
+    assert store.inserted[0][1][0]["page_no"] == -1
     assert repository.chunks["doc1"][0]["milvus_id"] == 1
