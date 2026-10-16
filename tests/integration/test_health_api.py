@@ -65,6 +65,10 @@ def test_root_serves_desktop_page(portable_root) -> None:
     assert 'id="stopButton"' in response.text
     assert 'id="providerForm"' in response.text
     assert 'id="providerList"' in response.text
+    assert 'id="settingsPanel"' in response.text
+    assert 'id="lanEnabled"' in response.text
+    assert 'id="sharedPassword"' in response.text
+    assert 'id="saveSettingsButton"' in response.text
 
 
 def test_static_assets_are_served(portable_root) -> None:

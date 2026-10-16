@@ -24,13 +24,30 @@ function setChip(element, text, status) {
   element.className = "status-chip" + (status ? ` ${status}` : "");
 }
 
+function authToken() {
+  return localStorage.getItem("knowledgeqa:token") || "";
+}
+
+function withAuth(headers = {}) {
+  const token = authToken();
+  return token
+    ? { ...headers, Authorization: `Bearer ${token}` }
+    : { ...headers };
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers: withAuth({
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    }),
     ...options,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401) {
+      showLogin();
+    }
     throw new Error(data.detail || data.message || `HTTP ${response.status}`);
   }
   return data;
@@ -397,7 +414,7 @@ async function sendChat() {
   try {
     const response = await fetch("/api/v1/chat/stream", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: withAuth({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         kb_ids: [kbId],
         query,
@@ -405,6 +422,10 @@ async function sendChat() {
       }),
       signal: state.abortController.signal,
     });
+    if (response.status === 401) {
+      showLogin();
+      throw new Error("Authentication required");
+    }
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -567,6 +588,62 @@ async function deleteProvider(providerId) {
   await loadProviders();
 }
 
+async function loadSettings() {
+  const settings = await api("/api/v1/settings");
+  $("lanEnabled").checked = Boolean(settings.lan_enabled);
+  $("settingsResult").textContent = settings.restart_required
+    ? `已保存。访问地址：${settings.access_url}，重启应用后生效。`
+    : `访问地址：${settings.access_url}`;
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const password = $("sharedPassword").value.trim();
+  const result = await api("/api/v1/settings", {
+    method: "PUT",
+    body: JSON.stringify({
+      lan_enabled: $("lanEnabled").checked,
+      shared_password: password || null,
+    }),
+  });
+  $("sharedPassword").value = "";
+  $("settingsResult").textContent = result.restart_required
+    ? `已保存。访问地址：${result.access_url}，重启应用后生效。`
+    : `访问地址：${result.access_url}`;
+}
+
+function showLogin() {
+  $("loginOverlay").classList.remove("hidden");
+}
+
+function hideLogin() {
+  $("loginOverlay").classList.add("hidden");
+  $("loginError").textContent = "";
+}
+
+async function submitLogin(event) {
+  event.preventDefault();
+  const password = $("loginPassword").value;
+  const response = await fetch("/api/v1/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    $("loginError").textContent = "密码不正确";
+    return;
+  }
+  const data = await response.json();
+  localStorage.setItem("knowledgeqa:token", data.token);
+  $("loginPassword").value = "";
+  hideLogin();
+  await refreshStatus();
+  await loadKnowledgeBases();
+  await loadConversations();
+  await loadProviders();
+  await loadSettings();
+}
+
 function switchTab(tab) {
   state.activeTab = tab;
   const panels = {
@@ -574,12 +651,14 @@ function switchTab(tab) {
     search: $("searchPanel"),
     kb: $("kbPanel"),
     models: $("modelsPanel"),
+    settings: $("settingsPanel"),
   };
   const tabs = {
     chat: $("tabChat"),
     search: $("tabSearch"),
     kb: $("tabKb"),
     models: $("tabModels"),
+    settings: $("tabSettings"),
   };
   for (const [name, panel] of Object.entries(panels)) {
     panel.classList.toggle("hidden", name !== tab);
@@ -603,6 +682,7 @@ function bindEvents() {
   $("tabSearch").addEventListener("click", () => switchTab("search"));
   $("tabKb").addEventListener("click", () => switchTab("kb"));
   $("tabModels").addEventListener("click", () => switchTab("models"));
+  $("tabSettings").addEventListener("click", () => switchTab("settings"));
   $("newConversationButton").addEventListener("click", newConversation);
   $("clearChatButton").addEventListener("click", newConversation);
   $("sendButton").addEventListener("click", sendChat);
@@ -618,6 +698,8 @@ function bindEvents() {
   $("testProviderButton").addEventListener("click", () => {
     if (state.providerId) testProvider(state.providerId);
   });
+  $("settingsForm").addEventListener("submit", saveSettings);
+  $("loginForm").addEventListener("submit", submitLogin);
 }
 
 async function init() {
@@ -629,6 +711,7 @@ async function init() {
     await loadKnowledgeBases();
     await loadConversations();
     await loadProviders();
+    await loadSettings();
   } catch (error) {
     $("chatMessages").replaceChildren(errorNode(error.message));
   }

@@ -56,6 +56,7 @@
           <button id="tabSearch" class="tab" type="button">检索</button>
           <button id="tabKb" class="tab" type="button">知识库</button>
           <button id="tabModels" class="tab" type="button">模型</button>
+          <button id="tabSettings" class="tab" type="button">设置</button>
         </nav>
 
         <section id="chatPanel" class="panel">
@@ -166,8 +167,36 @@
             </form>
           </div>
         </section>
+
+        <section id="settingsPanel" class="panel hidden">
+          <form id="settingsForm" class="provider-form">
+            <label class="checkbox-row">
+              <input id="lanEnabled" type="checkbox">
+              <span>启用局域网访问</span>
+            </label>
+            <label>共享密码
+              <input id="sharedPassword" type="password" placeholder="留空表示不修改">
+            </label>
+            <div class="form-actions">
+              <button id="saveSettingsButton" class="primary-button" type="submit">
+                <i data-lucide="save"></i>
+                <span>保存设置</span>
+              </button>
+            </div>
+            <div id="settingsResult" class="sync-result muted"></div>
+          </form>
+        </section>
       </main>
     </div>
+  </div>
+
+  <div id="loginOverlay" class="overlay hidden">
+    <form id="loginForm" class="login-box">
+      <h2>KnowledgeQA</h2>
+      <input id="loginPassword" type="password" placeholder="共享密码" autocomplete="current-password">
+      <button id="loginButton" class="primary-button" type="submit">登录</button>
+      <div id="loginError" class="muted"></div>
+    </form>
   </div>
 
   <script src="/static/vendor/lucide.min.js"></script>
