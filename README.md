@@ -80,3 +80,7 @@ The desktop window contains five workspace tabs:
 ## LAN Mode
 
 LAN access is disabled by default. Enable it in the `设置` tab and set a shared password. The desktop app bypasses login for local requests; remote devices receive a login prompt. Changing the LAN setting requires an application restart.
+
+## Backup And Restore
+
+The `设置` tab can create and restore backups. Backups contain a consistent SQLite snapshot and a version manifest. Milvus data can be included when Docker is available. Restore creates a pre-restore database safety copy before replacing current metadata.

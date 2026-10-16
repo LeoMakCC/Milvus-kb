@@ -1,6 +1,6 @@
 # KnowledgeQA M5B1 Backup Restore And Logging Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add manual backup and restore with version manifests, SQLite online backup, optional Milvus data backup, and rolling logs.
 
@@ -16,7 +16,7 @@
 - Create: `src/knowledgeqa/backup.py`
 - Test: `tests/unit/test_backup.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create a temporary SQLite DB, call `BackupService.create_backup`, and assert:
 
@@ -28,7 +28,7 @@ manifest["embedding_model"] == "BAAI/bge-small-zh-v1.5"
 "metadata.db" in manifest["files"]
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `BackupService.create_backup()`:
 
@@ -46,7 +46,7 @@ manifest["embedding_model"] == "BAAI/bge-small-zh-v1.5"
 - Modify: `src/knowledgeqa/backup.py`
 - Test: `tests/unit/test_backup.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Use a fake Docker runner and assert `BackupService` calls:
 
@@ -56,7 +56,7 @@ docker run --rm -v knowledgeqa_milvus-data:/data ...
 
 and records `milvus_included=True` when the command succeeds.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `_backup_milvus()` writes a temporary archive path and returns a bool. Failures are recorded in the manifest but do not abort SQLite backup.
 
@@ -68,7 +68,7 @@ and records `milvus_included=True` when the command succeeds.
 - Modify: `src/knowledgeqa/backup.py`
 - Test: `tests/unit/test_backup.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -76,7 +76,7 @@ Cover:
 - incompatible schema version raises an error;
 - restore creates a safety backup of the current `metadata.db`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `RestoreService.restore()`:
 
@@ -93,7 +93,7 @@ Cover:
 - Create: `src/knowledgeqa/logging_setup.py`
 - Test: `tests/unit/test_logging_setup.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Configure logging into a temp directory and assert:
 
@@ -103,7 +103,7 @@ Configure logging into a temp directory and assert:
 
 Log a secret-like value and confirm the formatter does not include request bodies by default.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Use `RotatingFileHandler` with 5 MB max size and 3 backups. Expose `configure_logging(log_dir, debug=False)`.
 
@@ -119,7 +119,7 @@ Use `RotatingFileHandler` with 5 MB max size and 3 backups. Expose `configure_lo
 - Test: `tests/integration/test_backup_api.py`
 - Modify: `tests/integration/test_health_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -137,7 +137,7 @@ id="restoreBackupButton"
 id="backupStatus"
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Settings page includes:
 
@@ -146,7 +146,7 @@ Settings page includes:
 - restore button using a path input;
 - log directory link/summary.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
