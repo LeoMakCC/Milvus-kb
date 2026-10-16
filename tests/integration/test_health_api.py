@@ -56,3 +56,22 @@ def test_root_serves_desktop_page(portable_root) -> None:
 
     assert response.status_code == 200
     assert "KnowledgeQA" in response.text
+    assert 'id="kbList"' in response.text
+    assert 'id="searchInput"' in response.text
+    assert 'id="syncButton"' in response.text
+
+
+def test_static_assets_are_served(portable_root) -> None:
+    app = create_app(
+        settings=Settings(),
+        paths=AppPaths(portable_root=portable_root),
+        status_provider=status_provider,
+    )
+
+    app_js = asyncio.run(get(app, "/static/app.js"))
+    styles = asyncio.run(get(app, "/static/styles.css"))
+    lucide = asyncio.run(get(app, "/static/vendor/lucide.min.js"))
+
+    assert app_js.status_code == 200
+    assert styles.status_code == 200
+    assert lucide.status_code == 200

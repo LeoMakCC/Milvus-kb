@@ -1,6 +1,6 @@
 # KnowledgeQA M2B Desktop UI Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn the M1 status page into a usable desktop UI for creating knowledge bases, syncing Markdown folders, and searching retrieved chunks.
 
@@ -20,7 +20,7 @@
 - Modify: `tests/unit/test_milvus_store.py`
 - Modify: `tests/unit/test_ingestion_service.py`
 
-- [ ] **Step 1: Write failing assertions**
+- [x] **Step 1: Write failing assertions**
 
 Add:
 
@@ -43,7 +43,7 @@ assert search_call[4] == [
 assert store.inserted[0][1][0]["source_path"] == "a.md"
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_milvus_schema.py tests/unit/test_milvus_store.py tests/unit/test_ingestion_service.py -v
@@ -51,13 +51,13 @@ assert store.inserted[0][1][0]["source_path"] == "a.md"
 
 Expected: failures for missing `source_path`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - Add `source_path` to the Milvus schema after `source_type`.
 - Include `source_path` in ingestion rows using `path.name`.
 - Add `source_path` to search output fields and normalized hit output.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_milvus_schema.py tests/unit/test_milvus_store.py tests/unit/test_ingestion_service.py -v
@@ -72,7 +72,7 @@ Expected: all pass.
 **Files:**
 - Modify: `tests/integration/test_health_api.py`
 
-- [ ] **Step 1: Add failing UI tests**
+- [x] **Step 1: Add failing UI tests**
 
 Assert:
 
@@ -91,7 +91,7 @@ def test_static_assets_are_served(portable_root):
     assert client.get("/static/vendor/lucide.min.js").status_code == 200
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_health_api.py -v
@@ -150,7 +150,7 @@ Expected: the file is non-empty and exposes `window.lucide`.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
@@ -158,7 +158,7 @@ Expected: the file is non-empty and exposes `window.lucide`.
 
 Expected: all tests pass.
 
-- [ ] **Step 2: Restart the desktop app on 8788**
+- [x] **Step 2: Restart the desktop app on 8788**
 
 Use:
 
@@ -169,7 +169,7 @@ $env:KB_PORT='8788'
 
 Expected: a `KnowledgeQA` window opens and `http://127.0.0.1:8788/` serves the new UI.
 
-- [ ] **Step 3: Verify live endpoints**
+- [x] **Step 3: Verify live endpoints**
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8788/api/v1/status'
@@ -178,7 +178,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8788/api/v1/kbs'
 
 Expected: M1 status object and an empty or existing KB list.
 
-- [ ] **Step 4: Verify real search flow**
+- [x] **Step 4: Verify real search flow**
 
 1. Create a knowledge base in the UI.
 2. Select a folder containing at least one Markdown file.

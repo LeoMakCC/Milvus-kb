@@ -7,16 +7,92 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main class="shell">
-    <header>
-      <h1>KnowledgeQA</h1>
-      <span id="health" class="status">检测中</span>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <i data-lucide="database"></i>
+        <span>KnowledgeQA</span>
+      </div>
+      <div class="status-strip">
+        <span id="apiStatus" class="status-chip">API</span>
+        <span id="milvusStatus" class="status-chip">Milvus</span>
+        <span id="modelStatus" class="status-chip">Embedding</span>
+      </div>
     </header>
-    <section class="panel">
-      <h2>桌面基础服务</h2>
-      <p id="statusLine">正在读取状态...</p>
-    </section>
-  </main>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <span>知识库</span>
+          <button id="newKbButton" class="icon-button" type="button" title="新建知识库">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+        <div id="kbList" class="kb-list"></div>
+        <form id="kbForm" class="kb-form hidden">
+          <input id="kbNameInput" type="text" placeholder="知识库名称" maxlength="80">
+          <button id="createKbButton" class="primary-button" type="submit">
+            <i data-lucide="check"></i>
+            <span>创建</span>
+          </button>
+        </form>
+      </aside>
+
+      <main class="main">
+        <nav class="tabs">
+          <button id="tabSearch" class="tab active" type="button">检索</button>
+          <button id="tabKb" class="tab" type="button">知识库</button>
+        </nav>
+
+        <section id="searchPanel" class="panel">
+          <div class="toolbar">
+            <div class="input-shell grow">
+              <i data-lucide="search"></i>
+              <input id="searchInput" type="text" placeholder="输入问题">
+            </div>
+            <label class="select-label">
+              返回
+              <select id="searchLimit">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </label>
+            <button id="searchButton" class="primary-button" type="button">
+              <i data-lucide="search"></i>
+              <span>检索</span>
+            </button>
+          </div>
+          <div id="searchResults" class="results">
+            <div class="empty-state">请选择知识库</div>
+          </div>
+        </section>
+
+        <section id="kbPanel" class="panel hidden">
+          <div class="kb-head">
+            <div>
+              <h1 id="kbTitle">未选择知识库</h1>
+              <p id="kbMeta" class="muted"></p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="input-shell grow">
+              <i data-lucide="folder"></i>
+              <input id="directoryInput" type="text" placeholder="Markdown 目录">
+            </div>
+            <button id="syncButton" class="primary-button" type="button">
+              <i data-lucide="refresh-cw"></i>
+              <span>同步</span>
+            </button>
+          </div>
+          <div id="syncResult" class="sync-result muted"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/vendor/lucide.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
