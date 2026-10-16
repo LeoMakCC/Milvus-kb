@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pymilvus import AnnSearchRequest, RRFRanker
+
 from knowledgeqa.milvus.schema import collection_name, create_knowledge_base_collection
 
 
@@ -69,6 +71,51 @@ class MilvusStore:
             },
             anns_field="vector",
         )
+        return self._normalize_hits(results)
+
+    def hybrid_search(
+        self,
+        kb_id: str,
+        dense_vector: list[float],
+        query_text: str,
+        limit: int = 20,
+    ) -> list[dict]:
+        name = collection_name(kb_id)
+        self.client.load_collection(name)
+        dense_request = AnnSearchRequest(
+            data=[dense_vector],
+            anns_field="vector",
+            param={
+                "metric_type": "COSINE",
+                "params": {"ef": 128},
+            },
+            limit=limit,
+        )
+        sparse_request = AnnSearchRequest(
+            data=[query_text],
+            anns_field="sparse",
+            param={"metric_type": "BM25"},
+            limit=limit,
+        )
+        results = self.client.hybrid_search(
+            name,
+            reqs=[dense_request, sparse_request],
+            ranker=RRFRanker(60),
+            limit=limit,
+            output_fields=[
+                "text",
+                "document_id",
+                "chunk_id",
+                "page_no",
+                "doc_type",
+                "source_type",
+                "source_path",
+            ],
+        )
+        return self._normalize_hits(results)
+
+    @staticmethod
+    def _normalize_hits(results) -> list[dict]:
         hits: list[dict] = []
         for hit in results[0]:
             entity = dict(hit.get("entity") or {})

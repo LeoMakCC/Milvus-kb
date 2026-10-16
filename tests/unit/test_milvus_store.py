@@ -1,5 +1,6 @@
 from knowledgeqa.milvus import store as store_module
 from knowledgeqa.milvus.store import MilvusStore
+from pymilvus import RRFRanker
 
 
 class FakeMilvusClient:
@@ -39,6 +40,28 @@ class FakeMilvusClient:
                         "document_id": "doc-1",
                         "chunk_id": "chunk-1",
                         "page_no": None,
+                        "doc_type": "markdown",
+                        "source_type": "local_file",
+                        "source_path": "contract.md",
+                    },
+                }
+            ]
+        ]
+
+    def hybrid_search(self, name, reqs, ranker, limit, output_fields):
+        self.calls.append(
+            ("hybrid_search", name, reqs, ranker, limit, output_fields)
+        )
+        return [
+            [
+                {
+                    "id": 201,
+                    "distance": 0.88,
+                    "entity": {
+                        "text": "合同 HT-2024-013",
+                        "document_id": "doc-2",
+                        "chunk_id": "chunk-2",
+                        "page_no": -1,
                         "doc_type": "markdown",
                         "source_type": "local_file",
                         "source_path": "contract.md",
@@ -118,3 +141,26 @@ def test_search_returns_normalized_hits() -> None:
         "source_path",
     ]
     assert search_call[6] == "vector"
+
+
+def test_hybrid_search_builds_dense_sparse_and_rrf_requests() -> None:
+    client = FakeMilvusClient()
+    store = MilvusStore("http://localhost:19530", client=client)
+
+    hits = store.hybrid_search(
+        "abc",
+        [0.1, 0.2],
+        "HT-2024-013",
+        limit=7,
+    )
+
+    call = next(item for item in client.calls if item[0] == "hybrid_search")
+    _, name, reqs, ranker, limit, output_fields = call
+    assert name == "kb_abc"
+    assert len(reqs) == 2
+    assert reqs[0].anns_field == "vector"
+    assert reqs[1].anns_field == "sparse"
+    assert isinstance(ranker, RRFRanker)
+    assert limit == 7
+    assert "source_path" in output_fields
+    assert hits[0]["source_path"] == "contract.md"
