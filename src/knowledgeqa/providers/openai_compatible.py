@@ -91,3 +91,15 @@ class OpenAICompatibleProvider:
                 if text:
                     yield ChatChunk(text=text)
         yield ChatChunk(text="", done=True)
+
+    def test_connection(self):
+        try:
+            response = self._get_client().get(
+                f"{self._base_url}/models",
+                headers=self._request_headers(),
+                timeout=10,
+            )
+            response.raise_for_status()
+            return True, "ok"
+        except Exception as exc:
+            return False, str(exc)

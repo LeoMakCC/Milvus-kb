@@ -40,3 +40,18 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
             "api-key": self._api_key,
             **self._headers,
         }
+
+    def test_connection(self):
+        try:
+            response = self._get_client().get(
+                (
+                    f"{self._endpoint}/openai/models"
+                    f"?api-version={self._api_version}"
+                ),
+                headers=self._request_headers(),
+                timeout=10,
+            )
+            response.raise_for_status()
+            return True, "ok"
+        except Exception as exc:
+            return False, str(exc)

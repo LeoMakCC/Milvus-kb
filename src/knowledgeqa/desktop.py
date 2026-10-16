@@ -15,8 +15,10 @@ from knowledgeqa.docker_control import DockerController
 from knowledgeqa.embedding import FastEmbedEmbedder
 from knowledgeqa.instance_lock import InstanceLock
 from knowledgeqa.milvus.store import MilvusStore
+from knowledgeqa.providers.manager import ProviderManager
 from knowledgeqa.providers.openai_compatible import OpenAICompatibleProvider
 from knowledgeqa.repository import Repository
+from knowledgeqa.security.secret_store import WindowsSecretStore
 from knowledgeqa.server import ServerRunner
 from knowledgeqa.services.ingestion import IngestionService
 from knowledgeqa.services.email_ingestion import EmailIngestionService
@@ -81,19 +83,27 @@ def main(docker_controller: DockerController | None = None) -> int:
         email_ingestion_service=email_ingestion_service,
     )
     search_service = SearchService(repository, embedder, milvus_store)
-    answer_service = None
+    secret_store = WindowsSecretStore()
+    fallback_provider = None
     if settings.llm_base_url and settings.llm_api_key:
-        provider = OpenAICompatibleProvider(
+        fallback_provider = OpenAICompatibleProvider(
             base_url=settings.llm_base_url,
             api_key=settings.llm_api_key,
             model=settings.llm_model,
         )
-        answer_service = AnswerService(
-            repository=repository,
-            search_service=search_service,
-            provider=provider,
-            model_name=settings.llm_model,
-        )
+    provider_manager = ProviderManager(
+        repository=repository,
+        secret_store=secret_store,
+        fallback_provider=fallback_provider,
+        fallback_model=settings.llm_model,
+    )
+    answer_service = AnswerService(
+        repository=repository,
+        search_service=search_service,
+        provider=fallback_provider,
+        model_name=settings.llm_model,
+        provider_resolver=provider_manager.active,
+    )
     app = create_app(
         settings=settings,
         paths=paths,
@@ -109,6 +119,8 @@ def main(docker_controller: DockerController | None = None) -> int:
         ingestion_service=ingestion_service,
         search_service=search_service,
         answer_service=answer_service,
+        provider_manager=provider_manager,
+        secret_store=secret_store,
     )
     runner = ServerRunner(app, settings)
 
