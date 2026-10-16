@@ -8,6 +8,7 @@ from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
+import extract_msg
 from bs4 import BeautifulSoup
 
 from knowledgeqa.email_models import EmailAttachment, ParsedEmail
@@ -148,10 +149,77 @@ def parse_mbox(path: Path) -> list[ParsedEmail]:
         box.close()
 
 
+def parse_msg(path: Path) -> list[ParsedEmail]:
+    message = extract_msg.Message(str(path))
+    try:
+        attachments: list[EmailAttachment] = []
+        for index, attachment in enumerate(message.attachments or [], start=1):
+            file_name = (
+                getattr(attachment, "longFilename", None)
+                or getattr(attachment, "shortFilename", None)
+                or f"attachment-{index}"
+            )
+            content_type = (
+                getattr(attachment, "mimetype", None)
+                or getattr(attachment, "mimeType", None)
+                or "application/octet-stream"
+            )
+            payload = getattr(attachment, "data", b"") or b""
+            attachments.append(
+                EmailAttachment(
+                    file_name=file_name,
+                    content_type=content_type,
+                    payload=payload,
+                )
+            )
+
+        date_value = getattr(message, "date", None)
+        sent_at = (
+            date_value.isoformat()
+            if hasattr(date_value, "isoformat")
+            else str(date_value or "")
+        )
+        subject = str(getattr(message, "subject", "") or "")
+        from_addr = str(getattr(message, "sender", "") or "")
+        to_addr = str(getattr(message, "to", "") or "")
+        cc_addr = str(getattr(message, "cc", "") or "")
+        body_text = str(getattr(message, "body", "") or "").strip()
+        if attachments:
+            names = ", ".join(attachment.file_name for attachment in attachments)
+            body_text = f"{body_text}\n\n附件: {names}".strip()
+        message_id = str(getattr(message, "messageId", "") or "") or None
+        return [
+            ParsedEmail(
+                message_id=message_id,
+                thread_id=message_id,
+                subject=subject,
+                from_addr=from_addr,
+                to_addr=to_addr,
+                cc_addr=cc_addr,
+                sent_at=sent_at,
+                body_text=body_text,
+                message_hash=_message_hash(
+                    subject,
+                    from_addr,
+                    to_addr,
+                    cc_addr,
+                    sent_at,
+                    body_text,
+                ),
+                source_path=path.name,
+                attachments=attachments,
+            )
+        ]
+    finally:
+        message.close()
+
+
 def parse_email_file(path: Path) -> list[ParsedEmail]:
     suffix = path.suffix.lower()
     if suffix == ".eml":
         return parse_eml(path)
     if suffix in {".mbox", ".mbx"}:
         return parse_mbox(path)
+    if suffix == ".msg":
+        return parse_msg(path)
     raise ValueError(f"Unsupported email format: {suffix}")

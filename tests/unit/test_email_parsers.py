@@ -1,8 +1,10 @@
 import mailbox
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from pathlib import Path
 
-from knowledgeqa.parsers.email_parser import parse_eml, parse_mbox
+from knowledgeqa.parsers import email_parser
+from knowledgeqa.parsers.email_parser import parse_eml, parse_mbox, parse_msg
 
 
 def make_message(
@@ -70,3 +72,35 @@ def test_parse_mbox_returns_one_email_per_message(tmp_path: Path) -> None:
         "<two@example.com>",
     ]
     assert emails[1].subject == "第二封"
+
+
+def test_parse_msg_maps_outlook_fields(monkeypatch, tmp_path: Path) -> None:
+    class FakeAttachment:
+        longFilename = "terms.txt"
+        shortFilename = ""
+        mimetype = "text/plain"
+        data = b"attachment"
+
+    class FakeMessage:
+        subject = "Outlook 邮件"
+        sender = "sender@example.com"
+        to = "to@example.com"
+        cc = "cc@example.com"
+        date = datetime(2026, 10, 16, 10, 0, tzinfo=timezone.utc)
+        messageId = "<msg@example.com>"
+        body = "Outlook 正文"
+        attachments = [FakeAttachment()]
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(email_parser.extract_msg, "Message", lambda path: FakeMessage())
+
+    emails = parse_msg(tmp_path / "mail.msg")
+
+    assert len(emails) == 1
+    assert emails[0].message_id == "<msg@example.com>"
+    assert emails[0].subject == "Outlook 邮件"
+    assert "Outlook 正文" in emails[0].body_text
+    assert "附件: terms.txt" in emails[0].body_text
+    assert emails[0].attachments[0].payload == b"attachment"
