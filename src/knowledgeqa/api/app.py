@@ -12,6 +12,7 @@ from knowledgeqa.api.routes.chat import create_chat_router
 from knowledgeqa.api.routes.backup import create_backup_router
 from knowledgeqa.api.routes.health import create_health_router
 from knowledgeqa.api.routes.kbs import create_kbs_router
+from knowledgeqa.api.routes.milvus import create_milvus_router
 from knowledgeqa.api.routes.providers import create_providers_router
 from knowledgeqa.api.routes.search import create_search_router
 from knowledgeqa.api.routes.settings import create_settings_router
@@ -31,6 +32,7 @@ def create_app(
     auth_guard: AuthGuard | None = None,
     backup_service=None,
     restore_service=None,
+    docker_controller=None,
 ) -> FastAPI:
     app = FastAPI(title="KnowledgeQA", version="0.1.0")
     app.include_router(create_health_router(status_provider))
@@ -63,6 +65,8 @@ def create_app(
         app.include_router(
             create_backup_router(backup_service, restore_service)
         )
+    if docker_controller is not None:
+        app.include_router(create_milvus_router(docker_controller))
 
     web_dir = Path(__file__).resolve().parents[1] / "web"
     app.mount("/static", StaticFiles(directory=web_dir), name="static")

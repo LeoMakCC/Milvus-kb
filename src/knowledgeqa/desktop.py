@@ -169,6 +169,7 @@ def main(docker_controller: DockerController | None = None) -> int:
         auth_guard=auth_guard,
         backup_service=backup_service,
         restore_service=restore_service,
+        docker_controller=controller,
     )
     runner = ServerRunner(app, settings)
     tray = None

@@ -595,6 +595,7 @@ async function loadSettings() {
     ? `已保存。访问地址：${settings.access_url}，重启应用后生效。`
     : `访问地址：${settings.access_url}`;
   await loadBackups();
+  await loadMilvusStatus();
 }
 
 async function saveSettings(event) {
@@ -646,6 +647,34 @@ async function restoreBackup() {
       : "恢复完成";
   } catch (error) {
     $("backupStatus").textContent = error.message;
+  }
+}
+
+async function loadMilvusStatus() {
+  const status = await api("/api/v1/milvus/status");
+  $("milvusLifecycleStatus").textContent =
+    `Docker: ${status.available ? "可用" : "不可用"} | Milvus: ${status.running ? "运行中" : "未运行"}`;
+}
+
+async function startMilvus() {
+  $("milvusLifecycleStatus").textContent = "启动中...";
+  try {
+    const result = await api("/api/v1/milvus/start", { method: "POST" });
+    $("milvusLifecycleStatus").textContent =
+      result.returncode === 0 ? "启动命令已执行" : "启动失败";
+  } catch (error) {
+    $("milvusLifecycleStatus").textContent = error.message;
+  }
+}
+
+async function stopMilvus() {
+  $("milvusLifecycleStatus").textContent = "停止中...";
+  try {
+    const result = await api("/api/v1/milvus/stop", { method: "POST" });
+    $("milvusLifecycleStatus").textContent =
+      result.returncode === 0 ? "停止命令已执行" : "停止失败";
+  } catch (error) {
+    $("milvusLifecycleStatus").textContent = error.message;
   }
 }
 
@@ -739,6 +768,8 @@ function bindEvents() {
   $("loginForm").addEventListener("submit", submitLogin);
   $("createBackupButton").addEventListener("click", createBackup);
   $("restoreBackupButton").addEventListener("click", restoreBackup);
+  $("startMilvusButton").addEventListener("click", startMilvus);
+  $("stopMilvusButton").addEventListener("click", stopMilvus);
 }
 
 async function init() {

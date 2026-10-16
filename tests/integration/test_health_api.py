@@ -72,6 +72,8 @@ def test_root_serves_desktop_page(portable_root) -> None:
     assert 'id="createBackupButton"' in response.text
     assert 'id="restoreBackupButton"' in response.text
     assert 'id="backupStatus"' in response.text
+    assert 'id="startMilvusButton"' in response.text
+    assert 'id="stopMilvusButton"' in response.text
 
 
 def test_static_assets_are_served(portable_root) -> None:
