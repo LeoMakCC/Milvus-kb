@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def git_commit() -> str:
+    configured = os.environ.get("GIT_COMMIT")
+    if configured:
+        return configured
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return ""
+
+
 def main() -> int:
     archive = Path(sys.argv[1]).resolve()
     output = Path(sys.argv[2]).resolve()
@@ -24,7 +39,7 @@ def main() -> int:
         "build_time": datetime.now(timezone.utc).isoformat(
             timespec="milliseconds"
         ),
-        "git_commit": os.environ.get("GIT_COMMIT", ""),
+        "git_commit": git_commit(),
         "milvus_version": "2.5.6",
         "embedding_model": "BAAI/bge-small-zh-v1.5",
         "vector_dimension": 512,
