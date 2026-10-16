@@ -38,7 +38,12 @@ def create_kbs_router(repository, ingestion_service) -> APIRouter:
         if ingestion_service is None:
             raise HTTPException(503, "Ingestion service is not configured")
         try:
-            if hasattr(ingestion_service, "sync_documents"):
+            if hasattr(ingestion_service, "sync_all"):
+                result = ingestion_service.sync_all(
+                    kb_id,
+                    Path(request.directory),
+                )
+            elif hasattr(ingestion_service, "sync_documents"):
                 result = ingestion_service.sync_documents(
                     kb_id,
                     Path(request.directory),

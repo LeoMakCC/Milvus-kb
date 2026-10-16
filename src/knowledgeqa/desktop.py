@@ -17,6 +17,7 @@ from knowledgeqa.milvus.store import MilvusStore
 from knowledgeqa.repository import Repository
 from knowledgeqa.server import ServerRunner
 from knowledgeqa.services.ingestion import IngestionService
+from knowledgeqa.services.email_ingestion import EmailIngestionService
 from knowledgeqa.services.search import SearchService
 from knowledgeqa.status import StatusService
 
@@ -66,7 +67,17 @@ def main(docker_controller: DockerController | None = None) -> int:
     repository = Repository(paths.db_path)
     embedder = FastEmbedEmbedder()
     milvus_store = MilvusStore(settings.milvus_uri)
-    ingestion_service = IngestionService(repository, embedder, milvus_store)
+    email_ingestion_service = EmailIngestionService(
+        repository,
+        embedder,
+        milvus_store,
+    )
+    ingestion_service = IngestionService(
+        repository,
+        embedder,
+        milvus_store,
+        email_ingestion_service=email_ingestion_service,
+    )
     search_service = SearchService(repository, embedder, milvus_store)
     app = create_app(
         settings=settings,

@@ -22,13 +22,27 @@ class IngestionService:
         milvus_store,
         max_chars: int = 1000,
         overlap: int = 120,
+        email_ingestion_service=None,
     ) -> None:
         self._repository = repository
         self._embedder = embedder
         self._milvus_store = milvus_store
         self._max_chars = max_chars
         self._overlap = overlap
+        self._email_ingestion_service = email_ingestion_service
         self._ensured_kbs: set[str] = set()
+
+    def sync_all(self, kb_id: str, directory: Path) -> SyncResult:
+        document_result = self.sync_documents(kb_id, directory)
+        if self._email_ingestion_service is None:
+            return document_result
+        email_result = self._email_ingestion_service.sync_emails(kb_id, directory)
+        return SyncResult(
+            scanned=document_result.scanned + email_result.scanned,
+            inserted=document_result.inserted + email_result.inserted,
+            skipped=document_result.skipped + email_result.skipped,
+            failed=document_result.failed + email_result.failed,
+        )
 
     def sync_documents(self, kb_id: str, directory: Path) -> SyncResult:
         return self._sync(kb_id, directory, supported_extensions())

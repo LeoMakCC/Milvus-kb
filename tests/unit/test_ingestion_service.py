@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from knowledgeqa.ingestion.models import SyncResult
 from knowledgeqa.services.ingestion import IngestionService
 
 
@@ -100,3 +101,25 @@ def test_sync_documents_ingests_supported_formats(tmp_path: Path) -> None:
         for row in rows
     }
     assert inserted_types == {"markdown", "txt"}
+
+
+class FakeEmailIngestionService:
+    def sync_emails(self, kb_id: str, directory: Path) -> SyncResult:
+        return SyncResult(scanned=2, inserted=1, skipped=1, failed=0)
+
+
+def test_sync_all_combines_document_and_email_counts(tmp_path: Path) -> None:
+    (tmp_path / "a.md").write_text("# A\nMarkdown", encoding="utf-8")
+    service = IngestionService(
+        FakeRepository(),
+        FakeEmbedder(),
+        FakeMilvusStore(),
+        email_ingestion_service=FakeEmailIngestionService(),
+    )
+
+    result = service.sync_all("kb1", tmp_path)
+
+    assert result.scanned == 3
+    assert result.inserted == 2
+    assert result.skipped == 1
+    assert result.failed == 0
