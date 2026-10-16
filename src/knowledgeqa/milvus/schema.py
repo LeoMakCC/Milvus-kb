@@ -8,7 +8,7 @@ def collection_name(kb_id: str) -> str:
 
 
 def create_knowledge_base_collection(client, kb_id: str, dim: int) -> None:
-    schema = client.create_schema(auto_id=False, enable_dynamic_field=False)
+    schema = client.create_schema(auto_id=True, enable_dynamic_field=False)
     schema.add_field("id", DataType.INT64, is_primary=True)
     schema.add_field("vector", DataType.FLOAT_VECTOR, dim=dim)
     schema.add_field(

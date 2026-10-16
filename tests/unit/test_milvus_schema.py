@@ -47,6 +47,7 @@ def test_create_knowledge_base_collection_builds_expected_contract() -> None:
 
     create_knowledge_base_collection(client, "abc", 512)
 
+    assert client.schema_kwargs["auto_id"] is True
     assert client.collections[0][0] == "kb_abc"
     field_names = [field[0][0] for field in client.schema.fields]
     assert field_names == [
