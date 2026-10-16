@@ -626,3 +626,38 @@ class Repository:
                 (provider_id,),
             )
             conn.commit()
+
+    def get_setting(self, key: str, default: str | None = None) -> str | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT value FROM app_settings WHERE key = ?",
+                (key,),
+            ).fetchone()
+        return row["value"] if row else default
+
+    def set_setting(
+        self,
+        key: str,
+        value: str,
+        encrypted: bool = False,
+    ) -> None:
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO app_settings(key, value, encrypted, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    encrypted = excluded.encrypted,
+                    updated_at = excluded.updated_at
+                """,
+                (key, value, int(encrypted), _utc_now()),
+            )
+            conn.commit()
+
+    def get_app_settings(self) -> dict[str, str]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                "SELECT key, value FROM app_settings"
+            ).fetchall()
+        return {row["key"]: row["value"] for row in rows}

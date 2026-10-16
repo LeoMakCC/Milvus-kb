@@ -185,3 +185,15 @@ def test_provider_config_round_trip(tmp_path: Path) -> None:
 
     repo.delete_provider_config(provider["id"])
     assert repo.get_provider_config(provider["id"]) is None
+
+
+def test_app_settings_round_trip(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+
+    repo.set_setting("lan_enabled", "1")
+    repo.set_setting("shared_password_hash", "hash")
+
+    assert repo.get_setting("lan_enabled") == "1"
+    assert repo.get_setting("missing", "default") == "default"
+    assert repo.get_app_settings()["shared_password_hash"] == "hash"
