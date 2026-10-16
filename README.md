@@ -64,3 +64,5 @@ The local mock provider is available for development:
 .\.venv\Scripts\python.exe scripts\mock_openai_server.py
 .\scripts\start_mock_llm_app.ps1
 ```
+
+Provider configs can also be managed through `/api/v1/providers`. API keys are stored with Windows DPAPI and are never returned by the API.

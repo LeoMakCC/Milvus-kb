@@ -1,6 +1,6 @@
 # KnowledgeQA M4B2A Provider Settings Backend Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Store model provider settings in SQLite, encrypt API keys with Windows DPAPI, expose provider configuration APIs, and resolve the active provider at chat time.
 
@@ -17,7 +17,7 @@
 - Create: `src/knowledgeqa/security/secret_store.py`
 - Test: `tests/unit/test_secret_store.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```python
 def test_secret_round_trip():
@@ -27,11 +27,11 @@ def test_secret_round_trip():
     assert store.unprotect(protected) == "sk-test"
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Use `win32crypt.CryptProtectData` and `CryptUnprotectData`. Raise a clear `RuntimeError` when the platform is not Windows.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_secret_store.py -v
@@ -45,7 +45,7 @@ Use `win32crypt.CryptProtectData` and `CryptUnprotectData`. Raise a clear `Runti
 - Modify: `src/knowledgeqa/repository.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -64,7 +64,7 @@ assert repo.get_active_provider_config()["id"] == provider["id"]
 repo.set_active_provider(provider["id"])
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Methods:
 
@@ -80,7 +80,7 @@ delete_provider_config(provider_id) -> None
 
 Store active provider name in `app_settings` using key `active_provider`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_repository.py -v
@@ -94,7 +94,7 @@ Store active provider name in `app_settings` using key `active_provider`.
 - Create: `src/knowledgeqa/providers/manager.py`
 - Test: `tests/unit/test_provider_manager.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -103,7 +103,7 @@ Cover:
 - Disabled or missing active config raises `ProviderNotConfigured`.
 - Environment fallback is used when no SQLite provider is active.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 class ProviderNotConfigured(RuntimeError):
@@ -115,7 +115,7 @@ class ProviderManager:
     def active(self) -> tuple[object, str]: ...
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_provider_manager.py -v
@@ -129,11 +129,11 @@ class ProviderManager:
 - Modify: `src/knowledgeqa/answer.py`
 - Test: `tests/unit/test_answer.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Pass `provider_resolver=lambda: (fake_provider, "resolved-model")` and assert the resolved provider/model are used.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `AnswerService` accepts optional `provider_resolver`. If present, call it once per stream request:
 
@@ -143,7 +143,7 @@ provider, model_name = self._provider_resolver()
 
 Fall back to constructor provider/model when no resolver is configured.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_answer.py -v
@@ -158,7 +158,7 @@ Fall back to constructor provider/model when no resolver is configured.
 - Modify: `src/knowledgeqa/api/app.py`
 - Test: `tests/integration/test_provider_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -168,7 +168,7 @@ Cover:
 - `POST /api/v1/providers/{id}/test` calls `provider.test_connection`.
 - `DELETE /api/v1/providers/{id}` removes config.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Request model:
 
@@ -187,7 +187,7 @@ Request model:
 
 Responses must never include `api_key` or `encrypted_secret`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_provider_api.py -v
@@ -201,7 +201,7 @@ Responses must never include `api_key` or `encrypted_secret`.
 - Modify: `src/knowledgeqa/desktop.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Wire**
+- [x] **Step 1: Wire**
 
 Desktop creates:
 
@@ -213,12 +213,12 @@ answer_service = AnswerService(repository, search_service, provider=env_provider
 
 Chat routes are included even when no provider is configured; calling chat without a configured model returns an `error` event.
 
-- [ ] **Step 2: Run all tests**
+- [x] **Step 2: Run all tests**
 
 ```powershell
 \.\.venv\Scripts\python.exe -m pytest
 ```
 
-- [ ] **Step 3: Live verification**
+- [x] **Step 3: Live verification**
 
 Restart 8788 without LLM environment variables. Use the provider API to add the local mock provider on `8899`, activate it, ingest a Markdown file, call `/api/v1/chat/stream`, and confirm tokens and `done`.

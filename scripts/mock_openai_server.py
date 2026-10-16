@@ -10,6 +10,11 @@ from fastapi.responses import StreamingResponse
 app = FastAPI()
 
 
+@app.get("/v1/models")
+async def models():
+    return {"data": [{"id": "mock"}]}
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     payload = await request.json()
