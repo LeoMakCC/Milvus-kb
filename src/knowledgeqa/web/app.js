@@ -139,7 +139,10 @@ async function syncKnowledgeBase() {
       body: JSON.stringify({ directory }),
     });
     $("syncResult").textContent =
-      `扫描 ${result.scanned} | 入库 ${result.inserted} | 跳过 ${result.skipped} | 失败 ${result.failed}`;
+      `扫描 ${result.scanned} | 入库 ${result.inserted} | 跳过 ${result.skipped}` +
+      ` | 附件新增 ${result.attachments_inserted ?? 0}` +
+      ` | 附件复用 ${result.attachments_reused ?? 0}` +
+      ` | 失败 ${result.failed}`;
   } catch (error) {
     $("syncResult").textContent = error.message;
   } finally {
