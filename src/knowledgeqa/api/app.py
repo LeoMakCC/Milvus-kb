@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from knowledgeqa.api.auth import AuthGuard, auth_middleware, create_auth_router
 from knowledgeqa.api.routes.chat import create_chat_router
 from knowledgeqa.api.routes.health import create_health_router
 from knowledgeqa.api.routes.kbs import create_kbs_router
@@ -25,6 +26,7 @@ def create_app(
     answer_service=None,
     provider_manager=None,
     secret_store=None,
+    auth_guard: AuthGuard | None = None,
 ) -> FastAPI:
     app = FastAPI(title="KnowledgeQA", version="0.1.0")
     app.include_router(create_health_router(status_provider))
@@ -46,6 +48,12 @@ def create_app(
                 provider_manager,
             )
         )
+    if auth_guard is not None:
+        app.include_router(create_auth_router(auth_guard))
+
+        @app.middleware("http")
+        async def _auth_middleware(request, call_next):
+            return await auth_middleware(request, call_next, auth_guard)
 
     web_dir = Path(__file__).resolve().parents[1] / "web"
     app.mount("/static", StaticFiles(directory=web_dir), name="static")
