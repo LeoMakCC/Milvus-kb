@@ -32,3 +32,5 @@ class SyncResult:
     inserted: int
     skipped: int
     failed: int
+    attachments_inserted: int = 0
+    attachments_reused: int = 0

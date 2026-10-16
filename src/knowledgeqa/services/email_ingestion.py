@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from knowledgeqa.ingestion.models import (
     SyncResult,
 )
 from knowledgeqa.parsers.email_parser import parse_email_file
+from knowledgeqa.parsers.registry import parse_document, supported_extensions
 
 EMAIL_EXTENSIONS = {".eml", ".mbox", ".mbx", ".msg"}
 
@@ -47,6 +49,7 @@ class EmailIngestionService:
             self._ensured_kbs.add(kb_id)
 
         scanned = inserted = skipped = failed = 0
+        attachments_inserted = attachments_reused = 0
         for path in sorted(directory.rglob("*")):
             if not path.is_file() or path.suffix.lower() not in EMAIL_EXTENSIONS:
                 continue
@@ -158,6 +161,22 @@ class EmailIngestionService:
                         sent_at=message.sent_at,
                         message_hash=message.message_hash,
                     )
+                    for attachment in message.attachments:
+                        try:
+                            (
+                                _,
+                                attachment_inserted,
+                                attachment_reused,
+                            ) = self._index_attachment(
+                                kb_id=kb_id,
+                                email_document_id=document["id"],
+                                email_file_name=path.name,
+                                attachment=attachment,
+                            )
+                            attachments_inserted += int(attachment_inserted)
+                            attachments_reused += int(attachment_reused)
+                        except Exception:
+                            failed += 1
                     self._repository.upsert_document(
                         kb_id=kb_id,
                         canonical_path=canonical_path,
@@ -177,4 +196,122 @@ class EmailIngestionService:
             inserted=inserted,
             skipped=skipped,
             failed=failed,
+            attachments_inserted=attachments_inserted,
+            attachments_reused=attachments_reused,
         )
+
+    def _index_attachment(
+        self,
+        kb_id: str,
+        email_document_id: str,
+        email_file_name: str,
+        attachment,
+    ) -> tuple[str | None, bool, bool]:
+        content_hash = hashlib.sha256(attachment.payload).hexdigest()
+        existing = self._repository.get_document_by_source_hash(
+            kb_id,
+            content_hash,
+        )
+        if existing:
+            self._repository.upsert_email_attachment(
+                email_document_id=email_document_id,
+                attachment_document_id=existing["id"],
+                file_name=attachment.file_name,
+                content_type=attachment.content_type,
+                content_hash=content_hash,
+            )
+            return existing["id"], False, True
+
+        suffix = Path(attachment.file_name).suffix.lower()
+        if suffix not in supported_extensions():
+            self._repository.upsert_email_attachment(
+                email_document_id=email_document_id,
+                attachment_document_id=None,
+                file_name=attachment.file_name,
+                content_type=attachment.content_type,
+                content_hash=content_hash,
+            )
+            return None, False, False
+
+        with tempfile.TemporaryDirectory(prefix="knowledgeqa-attachment-") as temp:
+            temp_path = Path(temp) / Path(attachment.file_name).name
+            temp_path.write_bytes(attachment.payload)
+            parsed = parse_document(temp_path)
+
+        canonical_path = (
+            f"{email_document_id}::{attachment.file_name}::{content_hash}"
+        )
+        document = self._repository.upsert_document(
+            kb_id=kb_id,
+            canonical_path=canonical_path,
+            file_name=attachment.file_name,
+            doc_type=parsed.doc_type,
+            source_type="email_attachment",
+            source_hash=content_hash,
+            index_status="indexing",
+            parent_document_id=email_document_id,
+        )
+        self._milvus_store.delete_document(kb_id, document["id"])
+
+        chunks = chunk_document(
+            parsed,
+            max_chars=self._max_chars,
+            overlap=self._overlap,
+        )
+        milvus_ids: list[int] = []
+        if chunks:
+            vectors = self._embedder.embed([chunk.text for chunk in chunks])
+            rows = [
+                {
+                    "vector": vector,
+                    "text": chunk.text,
+                    "kb_id": kb_id,
+                    "document_id": document["id"],
+                    "chunk_id": f"{document['id']}:{chunk.chunk_index}",
+                    "page_no": chunk.page_no,
+                    "doc_type": parsed.doc_type,
+                    "source_type": "email_attachment",
+                    "source_path": f"{email_file_name}::{attachment.file_name}",
+                }
+                for chunk, vector in zip(chunks, vectors)
+            ]
+            milvus_ids = self._milvus_store.insert_chunks(kb_id, rows)
+
+        self._repository.replace_chunks(
+            document["id"],
+            [
+                {
+                    "chunk_index": chunk.chunk_index,
+                    "chunk_hash": hashlib.sha256(
+                        chunk.text.encode("utf-8")
+                    ).hexdigest(),
+                    "milvus_id": (
+                        milvus_ids[index]
+                        if index < len(milvus_ids)
+                        else None
+                    ),
+                    "page_no": chunk.page_no,
+                    "section_path": chunk.section,
+                }
+                for index, chunk in enumerate(chunks)
+            ],
+        )
+        self._repository.upsert_document(
+            kb_id=kb_id,
+            canonical_path=canonical_path,
+            file_name=attachment.file_name,
+            doc_type=parsed.doc_type,
+            source_type="email_attachment",
+            source_hash=content_hash,
+            index_status="indexed",
+            indexed_at=_utc_now(),
+            parent_document_id=email_document_id,
+        )
+        self._repository.upsert_email_attachment(
+            email_document_id=email_document_id,
+            attachment_document_id=document["id"],
+            file_name=attachment.file_name,
+            content_type=attachment.content_type,
+            content_hash=content_hash,
+        )
+        return document["id"], True, False

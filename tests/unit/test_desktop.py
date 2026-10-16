@@ -18,7 +18,7 @@ def test_build_status_reports_defaults() -> None:
         "lan_enabled": False,
         "docker_available": False,
         "docker_running": False,
-        "db_schema_version": 1,
+        "db_schema_version": 2,
         "api_port": 8787,
     }
 
@@ -79,5 +79,5 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
             return await client.get("/api/v1/status")
 
     status = asyncio.run(fetch_status()).json()
-    assert status["db_schema_version"] == 1
+    assert status["db_schema_version"] == 2
     assert status["docker_available"] is False

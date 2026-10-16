@@ -34,7 +34,7 @@ def build_status(
     docker_available: Callable[[], bool] = lambda: False,
     docker_running: Callable[[], bool] = lambda: False,
     milvus_available: Callable[[], bool] = lambda: False,
-    db_schema_version: Callable[[], int] = lambda: 1,
+    db_schema_version: Callable[[], int] = lambda: 2,
 ) -> dict[str, object]:
     return StatusService(
         settings=settings,

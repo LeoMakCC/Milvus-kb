@@ -110,6 +110,8 @@ def test_sync_calls_ingestion_service(portable_root) -> None:
         "inserted": 1,
         "skipped": 1,
         "failed": 0,
+        "attachments_inserted": 0,
+        "attachments_reused": 0,
     }
     assert ingestion.calls == [("kb1", "D:\\docs")]
 
