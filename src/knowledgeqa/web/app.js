@@ -594,6 +594,7 @@ async function loadSettings() {
   $("settingsResult").textContent = settings.restart_required
     ? `已保存。访问地址：${settings.access_url}，重启应用后生效。`
     : `访问地址：${settings.access_url}`;
+  await loadBackups();
 }
 
 async function saveSettings(event) {
@@ -610,6 +611,42 @@ async function saveSettings(event) {
   $("settingsResult").textContent = result.restart_required
     ? `已保存。访问地址：${result.access_url}，重启应用后生效。`
     : `访问地址：${result.access_url}`;
+}
+
+async function loadBackups() {
+  const backups = await api("/api/v1/backup");
+  $("backupStatus").textContent = backups.length
+    ? `最近备份：${backups[0].name}`
+    : "暂无备份";
+}
+
+async function createBackup() {
+  $("backupStatus").textContent = "备份中...";
+  try {
+    const result = await api("/api/v1/backup", { method: "POST" });
+    $("backupStatus").textContent = `已创建：${result.path}`;
+    $("restorePath").value = result.path;
+  } catch (error) {
+    $("backupStatus").textContent = error.message;
+  }
+}
+
+async function restoreBackup() {
+  const path = $("restorePath").value.trim();
+  if (!path) return;
+  if (!window.confirm("恢复备份会覆盖当前元数据，确定继续？")) return;
+  $("backupStatus").textContent = "恢复中...";
+  try {
+    const result = await api("/api/v1/restore", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    });
+    $("backupStatus").textContent = result.safety_backup
+      ? `恢复完成，安全备份：${result.safety_backup}`
+      : "恢复完成";
+  } catch (error) {
+    $("backupStatus").textContent = error.message;
+  }
 }
 
 function showLogin() {
@@ -700,6 +737,8 @@ function bindEvents() {
   });
   $("settingsForm").addEventListener("submit", saveSettings);
   $("loginForm").addEventListener("submit", submitLogin);
+  $("createBackupButton").addEventListener("click", createBackup);
+  $("restoreBackupButton").addEventListener("click", restoreBackup);
 }
 
 async function init() {

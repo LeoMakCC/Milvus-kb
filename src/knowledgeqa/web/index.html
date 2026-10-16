@@ -185,6 +185,21 @@
             </div>
             <div id="settingsResult" class="sync-result muted"></div>
           </form>
+          <div class="backup-block">
+            <div class="sidebar-head"><span>备份</span></div>
+            <div class="toolbar">
+              <button id="createBackupButton" class="primary-button" type="button">
+                <i data-lucide="archive"></i>
+                <span>创建备份</span>
+              </button>
+              <button id="restoreBackupButton" class="ghost-button" type="button">
+                <i data-lucide="rotate-ccw"></i>
+                <span>恢复</span>
+              </button>
+            </div>
+            <input id="restorePath" class="full-input" type="text" placeholder="备份文件路径">
+            <div id="backupStatus" class="sync-result muted"></div>
+          </div>
         </section>
       </main>
     </div>

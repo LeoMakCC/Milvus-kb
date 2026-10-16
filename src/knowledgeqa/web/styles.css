@@ -286,6 +286,15 @@ svg { width: 16px; height: 16px; stroke-width: 1.8; }
 }
 .provider-form .checkbox-row input { width: auto; }
 .form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.backup-block { margin-top: 24px; max-width: 620px; }
+.full-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 9px;
+  outline: none;
+}
+.full-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px #dbeafe; }
 
 .overlay {
   position: fixed;

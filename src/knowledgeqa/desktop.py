@@ -10,12 +10,14 @@ import webview
 from knowledgeqa.answer import AnswerService
 from knowledgeqa.api.auth import AuthGuard
 from knowledgeqa.api.app import create_app
+from knowledgeqa.backup import BackupService, RestoreService
 from knowledgeqa.config import AppPaths, Settings
 from knowledgeqa.db.connection import connect
 from knowledgeqa.db.migrations import apply_migrations, current_version
 from knowledgeqa.docker_control import DockerController
 from knowledgeqa.embedding import FastEmbedEmbedder
 from knowledgeqa.instance_lock import InstanceLock
+from knowledgeqa.logging_setup import configure_logging
 from knowledgeqa.milvus.store import MilvusStore
 from knowledgeqa.providers.manager import ProviderManager
 from knowledgeqa.providers.openai_compatible import OpenAICompatibleProvider
@@ -64,6 +66,8 @@ def main(docker_controller: DockerController | None = None) -> int:
         schema_version = current_version(conn)
     finally:
         conn.close()
+
+    configure_logging(paths.log_dir)
 
     lock = InstanceLock(paths.data_dir / "app.lock")
     if not lock.try_acquire():
@@ -117,6 +121,16 @@ def main(docker_controller: DockerController | None = None) -> int:
         repository=repository,
         sessions=SessionManager(),
     )
+    backup_service = BackupService(
+        db_path=paths.db_path,
+        data_dir=paths.data_dir,
+        backup_dir=paths.backup_dir,
+        schema_version=schema_version,
+    )
+    restore_service = RestoreService(
+        target_data_dir=paths.data_dir,
+        schema_version=schema_version,
+    )
     app = create_app(
         settings=settings,
         paths=paths,
@@ -135,6 +149,8 @@ def main(docker_controller: DockerController | None = None) -> int:
         provider_manager=provider_manager,
         secret_store=secret_store,
         auth_guard=auth_guard,
+        backup_service=backup_service,
+        restore_service=restore_service,
     )
     runner = ServerRunner(app, settings)
 
