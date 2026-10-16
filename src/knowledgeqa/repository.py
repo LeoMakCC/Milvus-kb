@@ -79,6 +79,23 @@ class Repository:
             ).fetchone()
         return dict(row) if row else None
 
+    def get_document_by_source_hash(
+        self,
+        kb_id: str,
+        source_hash: str,
+    ) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM documents
+                WHERE kb_id = ? AND source_hash = ?
+                ORDER BY created_at
+                LIMIT 1
+                """,
+                (kb_id, source_hash),
+            ).fetchone()
+        return dict(row) if row else None
+
     def upsert_document(
         self,
         kb_id: str,
@@ -93,6 +110,7 @@ class Repository:
         index_status: str = "pending",
         last_error: str | None = None,
         indexed_at: str | None = None,
+        parent_document_id: str | None = None,
     ) -> dict:
         existing = self.get_document_by_path(kb_id, canonical_path)
         now = _utc_now()
@@ -104,7 +122,7 @@ class Repository:
                     SET file_name = ?, doc_type = ?, source_type = ?,
                         source_hash = ?, normalized_hash = ?, size_bytes = ?,
                         mtime_ns = ?, index_status = ?, last_error = ?,
-                        indexed_at = ?, updated_at = ?
+                        indexed_at = ?, parent_document_id = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (
@@ -118,6 +136,7 @@ class Repository:
                         index_status,
                         last_error,
                         indexed_at,
+                        parent_document_id,
                         now,
                         existing["id"],
                     ),
@@ -133,7 +152,8 @@ class Repository:
                     id, kb_id, canonical_path, file_name, doc_type, source_type,
                     source_hash, normalized_hash, size_bytes, mtime_ns,
                     index_status, last_error, indexed_at, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    , parent_document_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     document_id,
@@ -151,6 +171,7 @@ class Repository:
                     indexed_at,
                     now,
                     now,
+                    parent_document_id,
                 ),
             )
             conn.commit()
@@ -295,3 +316,86 @@ class Repository:
                 (kb_id, message_hash),
             ).fetchone()
         return dict(row) if row else None
+
+    def upsert_email_attachment(
+        self,
+        email_document_id: str,
+        attachment_document_id: str | None,
+        file_name: str,
+        content_type: str,
+        content_hash: str,
+    ) -> dict:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM email_attachments
+                WHERE email_document_id = ? AND file_name = ? AND content_hash = ?
+                """,
+                (email_document_id, file_name, content_hash),
+            ).fetchone()
+            if row:
+                conn.execute(
+                    """
+                    UPDATE email_attachments
+                    SET attachment_document_id = ?, content_type = ?
+                    WHERE id = ?
+                    """,
+                    (attachment_document_id, content_type, row["id"]),
+                )
+                conn.commit()
+                attachment_id = row["id"]
+            else:
+                attachment_id = uuid4().hex
+                conn.execute(
+                    """
+                    INSERT INTO email_attachments(
+                        id, email_document_id, attachment_document_id,
+                        file_name, content_type, content_hash, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        attachment_id,
+                        email_document_id,
+                        attachment_document_id,
+                        file_name,
+                        content_type,
+                        content_hash,
+                        _utc_now(),
+                    ),
+                )
+                conn.commit()
+        return self.get_email_attachment(attachment_id)
+
+    def get_email_attachment(self, attachment_id: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM email_attachments WHERE id = ?",
+                (attachment_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def list_email_attachments(self, email_document_id: str) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM email_attachments
+                WHERE email_document_id = ?
+                ORDER BY file_name
+                """,
+                (email_document_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_email_thread(self, kb_id: str, thread_id: str) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT emails.*, documents.file_name
+                FROM emails
+                JOIN documents ON documents.id = emails.document_id
+                WHERE documents.kb_id = ? AND emails.thread_id = ?
+                ORDER BY emails.sent_at, emails.id
+                """,
+                (kb_id, thread_id),
+            ).fetchall()
+        return [dict(row) for row in rows]
