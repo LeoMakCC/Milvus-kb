@@ -1,6 +1,6 @@
 # KnowledgeQA M4B1 Chat Backend Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add OpenAI-compatible and Azure OpenAI chat providers, conversation persistence, prompt construction, streaming answer generation, and an SSE chat endpoint.
 
@@ -18,7 +18,7 @@
 - Create: `src/knowledgeqa/providers/__init__.py`
 - Test: `tests/unit/test_providers.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -26,7 +26,7 @@ Cover:
 - streaming `stream_chat` parses `data:` SSE lines and stops at `[DONE]`.
 - request includes model, messages, temperature, and stream flag.
 
-- [ ] **Step 2: Implement models**
+- [x] **Step 2: Implement models**
 
 ```python
 @dataclass(frozen=True)
@@ -54,7 +54,7 @@ class ChatResponse:
     usage: dict | None = None
 ```
 
-- [ ] **Step 3: Implement OpenAI-compatible provider**
+- [x] **Step 3: Implement OpenAI-compatible provider**
 
 Use `httpx.Client` by default and accept an injected client for tests.
 
@@ -62,7 +62,7 @@ URL: `{base_url}/chat/completions`.
 
 Headers: `Authorization: Bearer <api_key>`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_providers.py -v
@@ -76,7 +76,7 @@ Headers: `Authorization: Bearer <api_key>`.
 - Create: `src/knowledgeqa/providers/azure.py`
 - Modify: `tests/unit/test_providers.py`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Assert URL:
 
@@ -86,11 +86,11 @@ Assert URL:
 
 Assert header `api-key` is used instead of `Authorization`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Reuse the same request/stream parsing helpers where practical.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_providers.py -v
@@ -104,7 +104,7 @@ Reuse the same request/stream parsing helpers where practical.
 - Modify: `src/knowledgeqa/repository.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -116,7 +116,7 @@ assert repo.list_conversations()[0]["id"] == conversation["id"]
 assert [message["role"] for message in repo.list_messages(conversation["id"])] == ["user", "assistant"]
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Methods:
 
@@ -128,7 +128,7 @@ add_message(conversation_id, role, content, citations_json=None) -> dict
 list_messages(conversation_id) -> list[dict]
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_repository.py -v
@@ -142,7 +142,7 @@ list_messages(conversation_id) -> list[dict]
 - Create: `src/knowledgeqa/answer.py`
 - Test: `tests/unit/test_answer.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -153,7 +153,7 @@ Cover:
 - multi-turn rewrite hook is used when conversation history exists;
 - provider failure yields an `error` event.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 class AnswerService:
@@ -182,7 +182,7 @@ Prompt rules:
 - if snippets are insufficient, say so;
 - include source path in each snippet.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_answer.py -v
@@ -199,7 +199,7 @@ Prompt rules:
 - Modify: `src/knowledgeqa/config.py`
 - Test: `tests/integration/test_chat_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -207,7 +207,7 @@ Cover:
 - events include `retrieval`, `token`, `done`;
 - conversations list and message history endpoints work.
 
-- [ ] **Step 2: Implement SSE**
+- [x] **Step 2: Implement SSE**
 
 Event format:
 
@@ -217,7 +217,7 @@ data: {"text":"..."}
 
 ```
 
-- [ ] **Step 3: Wire desktop provider**
+- [x] **Step 3: Wire desktop provider**
 
 Add environment settings:
 
@@ -229,7 +229,7 @@ KB_LLM_MODEL
 
 If base URL and API key are present, construct `OpenAICompatibleProvider` and `AnswerService`. Otherwise omit chat routes and keep the app usable.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_chat_api.py -v
@@ -242,16 +242,16 @@ If base URL and API key are present, construct `OpenAICompatibleProvider` and `A
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-- [ ] **Step 2: Start a local mock OpenAI-compatible server**
+- [x] **Step 2: Start a local mock OpenAI-compatible server**
 
 The mock streams `付款条件是验收后30日内付款。[1]`.
 
-- [ ] **Step 3: Start the app with `KB_LLM_BASE_URL` pointing to the mock**
+- [x] **Step 3: Start the app with `KB_LLM_BASE_URL` pointing to the mock**
 
 Call `/api/v1/chat/stream` and verify streamed tokens and a final `done` event.

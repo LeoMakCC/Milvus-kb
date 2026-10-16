@@ -47,3 +47,20 @@ Email messages are deduplicated by `Message-ID` when available. Supported attach
 ## Retrieval
 
 Search uses Milvus dense vector retrieval plus BM25 sparse retrieval, fused with RRF. An optional HTTP reranker can be configured without changing the indexing pipeline.
+
+## Chat Provider
+
+Set the following environment variables to enable streaming chat:
+
+```powershell
+$env:KB_LLM_BASE_URL = "https://api.example.com/v1"
+$env:KB_LLM_API_KEY = "your-key"
+$env:KB_LLM_MODEL = "your-model"
+```
+
+The local mock provider is available for development:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\mock_openai_server.py
+.\scripts\start_mock_llm_app.ps1
+```
