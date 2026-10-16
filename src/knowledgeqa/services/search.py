@@ -13,4 +13,11 @@ class SearchService:
         if self._repository.get_knowledge_base(kb_id) is None:
             raise ValueError(f"Knowledge base not found: {kb_id}")
         vector = self._embedder.embed([query])[0]
+        if hasattr(self._milvus_store, "hybrid_search"):
+            return self._milvus_store.hybrid_search(
+                kb_id,
+                vector,
+                query,
+                limit=limit,
+            )
         return self._milvus_store.search(kb_id, vector, limit=limit)

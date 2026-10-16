@@ -19,9 +19,28 @@ class FakeMilvusStore:
     def __init__(self) -> None:
         self.calls = []
 
+    def hybrid_search(
+        self,
+        kb_id: str,
+        dense_vector: list[float],
+        query_text: str,
+        limit: int = 20,
+    ):
+        self.calls.append(("hybrid", kb_id, dense_vector, query_text, limit))
+        return [{"id": 1, "score": 0.9, "text": "付款条件"}]
+
+    def search(self, kb_id: str, vector: list[float], limit: int = 5):
+        self.calls.append(("dense", kb_id, vector, limit))
+        return [{"id": 2, "score": 0.8, "text": "稠密结果"}]
+
+
+class DenseOnlyStore:
+    def __init__(self) -> None:
+        self.calls = []
+
     def search(self, kb_id: str, vector: list[float], limit: int = 5):
         self.calls.append((kb_id, vector, limit))
-        return [{"id": 1, "score": 0.9, "text": "付款条件"}]
+        return [{"id": 2, "score": 0.8, "text": "稠密结果"}]
 
 
 def test_search_embeds_query_and_delegates_to_milvus() -> None:
@@ -34,4 +53,14 @@ def test_search_embeds_query_and_delegates_to_milvus() -> None:
 
     assert hits == [{"id": 1, "score": 0.9, "text": "付款条件"}]
     assert embedder.inputs == [["付款条件"]]
+    assert store.calls == [("hybrid", "kb1", [0.1, 0.2], "付款条件", 3)]
+
+
+def test_search_falls_back_to_dense_when_hybrid_is_unavailable() -> None:
+    store = DenseOnlyStore()
+    service = SearchService(FakeRepository(), FakeEmbedder(), store)
+
+    hits = service.search("kb1", "付款条件", limit=3)
+
+    assert hits == [{"id": 2, "score": 0.8, "text": "稠密结果"}]
     assert store.calls == [("kb1", [0.1, 0.2], 3)]
