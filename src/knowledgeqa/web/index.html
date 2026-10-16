@@ -22,29 +22,70 @@
 
     <div class="workspace">
       <aside class="sidebar">
-        <div class="sidebar-head">
-          <span>知识库</span>
-          <button id="newKbButton" class="icon-button" type="button" title="新建知识库">
-            <i data-lucide="plus"></i>
-          </button>
-        </div>
-        <div id="kbList" class="kb-list"></div>
-        <form id="kbForm" class="kb-form hidden">
-          <input id="kbNameInput" type="text" placeholder="知识库名称" maxlength="80">
-          <button id="createKbButton" class="primary-button" type="submit">
-            <i data-lucide="check"></i>
-            <span>创建</span>
-          </button>
-        </form>
+        <section id="kbSidebar" class="sidebar-section">
+          <div class="sidebar-head">
+            <span>知识库</span>
+            <button id="newKbButton" class="icon-button" type="button" title="新建知识库">
+              <i data-lucide="plus"></i>
+            </button>
+          </div>
+          <div id="kbList" class="kb-list"></div>
+          <form id="kbForm" class="kb-form hidden">
+            <input id="kbNameInput" type="text" placeholder="知识库名称" maxlength="80">
+            <button id="createKbButton" class="primary-button" type="submit">
+              <i data-lucide="check"></i>
+              <span>创建</span>
+            </button>
+          </form>
+        </section>
+
+        <section id="conversationSidebar" class="sidebar-section hidden">
+          <div class="sidebar-head">
+            <span>会话</span>
+            <button id="newConversationButton" class="icon-button" type="button" title="新建会话">
+              <i data-lucide="plus"></i>
+            </button>
+          </div>
+          <div id="conversationList" class="conversation-list"></div>
+        </section>
       </aside>
 
       <main class="main">
         <nav class="tabs">
-          <button id="tabSearch" class="tab active" type="button">检索</button>
+          <button id="tabChat" class="tab active" type="button">问答</button>
+          <button id="tabSearch" class="tab" type="button">检索</button>
           <button id="tabKb" class="tab" type="button">知识库</button>
+          <button id="tabModels" class="tab" type="button">模型</button>
         </nav>
 
-        <section id="searchPanel" class="panel">
+        <section id="chatPanel" class="panel">
+          <div class="toolbar">
+            <label class="select-label">
+              知识库
+              <select id="chatKbSelect"></select>
+            </label>
+            <button id="clearChatButton" class="ghost-button" type="button">
+              <i data-lucide="message-square-plus"></i>
+              <span>新对话</span>
+            </button>
+          </div>
+          <div id="chatMessages" class="messages">
+            <div class="empty-state">选择知识库后开始提问</div>
+          </div>
+          <div class="chat-input-row">
+            <textarea id="chatInput" rows="1" placeholder="输入问题"></textarea>
+            <button id="stopButton" class="ghost-button hidden" type="button">
+              <i data-lucide="square"></i>
+              <span>停止</span>
+            </button>
+            <button id="sendButton" class="primary-button" type="button">
+              <i data-lucide="send"></i>
+              <span>发送</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="searchPanel" class="panel hidden">
           <div class="toolbar">
             <div class="input-shell grow">
               <i data-lucide="search"></i>
@@ -64,9 +105,7 @@
               <span>检索</span>
             </button>
           </div>
-          <div id="searchResults" class="results">
-            <div class="empty-state">请选择知识库</div>
-          </div>
+          <div id="searchResults" class="results"></div>
         </section>
 
         <section id="kbPanel" class="panel hidden">
@@ -87,6 +126,45 @@
             </button>
           </div>
           <div id="syncResult" class="sync-result muted"></div>
+        </section>
+
+        <section id="modelsPanel" class="panel hidden">
+          <div class="models-layout">
+            <div class="provider-list-wrap">
+              <div class="sidebar-head">
+                <span>模型服务</span>
+                <button id="newProviderButton" class="icon-button" type="button" title="新增模型服务">
+                  <i data-lucide="plus"></i>
+                </button>
+              </div>
+              <div id="providerList" class="provider-list"></div>
+            </div>
+            <form id="providerForm" class="provider-form">
+              <input type="hidden" id="providerId">
+              <label>名称<input id="providerName" type="text" placeholder="例如 deepseek"></label>
+              <label>类型
+                <select id="providerType">
+                  <option value="openai_compatible">OpenAI 兼容</option>
+                  <option value="azure_openai">Azure OpenAI</option>
+                </select>
+              </label>
+              <label>Base URL<input id="providerBaseUrl" type="text" placeholder="https://api.example.com/v1"></label>
+              <label>模型或部署名<input id="providerModel" type="text" placeholder="deepseek-chat"></label>
+              <label>API Version<input id="providerApiVersion" type="text" placeholder="Azure 可选"></label>
+              <label>API Key<input id="providerApiKey" type="password" placeholder="留空表示保持原值"></label>
+              <div class="form-actions">
+                <button id="saveProviderButton" class="primary-button" type="submit">
+                  <i data-lucide="save"></i>
+                  <span>保存</span>
+                </button>
+                <button id="testProviderButton" class="ghost-button" type="button">
+                  <i data-lucide="plug-zap"></i>
+                  <span>测试</span>
+                </button>
+              </div>
+              <div id="providerTestResult" class="sync-result muted"></div>
+            </form>
+          </div>
         </section>
       </main>
     </div>

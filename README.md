@@ -66,3 +66,12 @@ The local mock provider is available for development:
 ```
 
 Provider configs can also be managed through `/api/v1/providers`. API keys are stored with Windows DPAPI and are never returned by the API.
+
+## Desktop UI
+
+The desktop window contains four workspace tabs:
+
+- `问答`: conversations, streaming answers, citations, and follow-up questions.
+- `检索`: direct hybrid retrieval results.
+- `知识库`: document roots and sync status.
+- `模型`: provider CRUD, connection tests, and active-model selection.

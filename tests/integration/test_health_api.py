@@ -59,6 +59,12 @@ def test_root_serves_desktop_page(portable_root) -> None:
     assert 'id="kbList"' in response.text
     assert 'id="searchInput"' in response.text
     assert 'id="syncButton"' in response.text
+    assert 'id="chatMessages"' in response.text
+    assert 'id="chatInput"' in response.text
+    assert 'id="sendButton"' in response.text
+    assert 'id="stopButton"' in response.text
+    assert 'id="providerForm"' in response.text
+    assert 'id="providerList"' in response.text
 
 
 def test_static_assets_are_served(portable_root) -> None:
