@@ -37,6 +37,9 @@ def test_settings_from_env_overrides_runtime_values() -> None:
             "KB_PORT": "8788",
             "KB_LAN_ENABLED": "1",
             "KB_MILVUS_URI": "http://127.0.0.1:19531",
+            "KB_LLM_BASE_URL": "http://127.0.0.1:9999/v1",
+            "KB_LLM_API_KEY": "test-key",
+            "KB_LLM_MODEL": "test-model",
         }
     )
 
@@ -44,3 +47,6 @@ def test_settings_from_env_overrides_runtime_values() -> None:
     assert settings.port == 8788
     assert settings.lan_enabled is True
     assert settings.milvus_uri == "http://127.0.0.1:19531"
+    assert settings.llm_base_url == "http://127.0.0.1:9999/v1"
+    assert settings.llm_api_key == "test-key"
+    assert settings.llm_model == "test-model"

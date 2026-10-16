@@ -52,6 +52,9 @@ class Settings:
     port: int = 8787
     lan_enabled: bool = False
     milvus_uri: str = "http://localhost:19530"
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "deepseek-chat"
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "Settings":
@@ -61,4 +64,7 @@ class Settings:
             port=int(values.get("KB_PORT", str(cls.port))),
             lan_enabled=values.get("KB_LAN_ENABLED", "0") == "1",
             milvus_uri=values.get("KB_MILVUS_URI", cls.milvus_uri),
+            llm_base_url=values.get("KB_LLM_BASE_URL", cls.llm_base_url),
+            llm_api_key=values.get("KB_LLM_API_KEY", cls.llm_api_key),
+            llm_model=values.get("KB_LLM_MODEL", cls.llm_model),
         )

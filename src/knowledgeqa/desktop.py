@@ -6,6 +6,7 @@ from pathlib import Path
 
 import webview
 
+from knowledgeqa.answer import AnswerService
 from knowledgeqa.api.app import create_app
 from knowledgeqa.config import AppPaths, Settings
 from knowledgeqa.db.connection import connect
@@ -14,6 +15,7 @@ from knowledgeqa.docker_control import DockerController
 from knowledgeqa.embedding import FastEmbedEmbedder
 from knowledgeqa.instance_lock import InstanceLock
 from knowledgeqa.milvus.store import MilvusStore
+from knowledgeqa.providers.openai_compatible import OpenAICompatibleProvider
 from knowledgeqa.repository import Repository
 from knowledgeqa.server import ServerRunner
 from knowledgeqa.services.ingestion import IngestionService
@@ -79,6 +81,19 @@ def main(docker_controller: DockerController | None = None) -> int:
         email_ingestion_service=email_ingestion_service,
     )
     search_service = SearchService(repository, embedder, milvus_store)
+    answer_service = None
+    if settings.llm_base_url and settings.llm_api_key:
+        provider = OpenAICompatibleProvider(
+            base_url=settings.llm_base_url,
+            api_key=settings.llm_api_key,
+            model=settings.llm_model,
+        )
+        answer_service = AnswerService(
+            repository=repository,
+            search_service=search_service,
+            provider=provider,
+            model_name=settings.llm_model,
+        )
     app = create_app(
         settings=settings,
         paths=paths,
@@ -93,6 +108,7 @@ def main(docker_controller: DockerController | None = None) -> int:
         repository=repository,
         ingestion_service=ingestion_service,
         search_service=search_service,
+        answer_service=answer_service,
     )
     runner = ServerRunner(app, settings)
 
