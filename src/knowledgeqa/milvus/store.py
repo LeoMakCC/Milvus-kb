@@ -61,6 +61,7 @@ class MilvusStore:
                 "page_no",
                 "doc_type",
                 "source_type",
+                "source_path",
             ],
             search_params={
                 "metric_type": "COSINE",

@@ -41,6 +41,7 @@ class FakeMilvusClient:
                         "page_no": None,
                         "doc_type": "markdown",
                         "source_type": "local_file",
+                        "source_path": "contract.md",
                     },
                 }
             ]
@@ -102,8 +103,18 @@ def test_search_returns_normalized_hits() -> None:
             "page_no": None,
             "doc_type": "markdown",
             "source_type": "local_file",
+            "source_path": "contract.md",
         }
     ]
     search_call = next(call for call in client.calls if call[0] == "search")
     assert search_call[3] == 3
+    assert search_call[4] == [
+        "text",
+        "document_id",
+        "chunk_id",
+        "page_no",
+        "doc_type",
+        "source_type",
+        "source_path",
+    ]
     assert search_call[6] == "vector"

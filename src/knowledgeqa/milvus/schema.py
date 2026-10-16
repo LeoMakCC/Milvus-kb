@@ -25,6 +25,7 @@ def create_knowledge_base_collection(client, kb_id: str, dim: int) -> None:
     schema.add_field("page_no", DataType.INT64)
     schema.add_field("doc_type", DataType.VARCHAR, max_length=32)
     schema.add_field("source_type", DataType.VARCHAR, max_length=32)
+    schema.add_field("source_path", DataType.VARCHAR, max_length=1024)
     schema.add_function(
         Function(
             name="bm25",

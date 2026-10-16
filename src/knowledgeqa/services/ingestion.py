@@ -89,6 +89,7 @@ class IngestionService:
                             "page_no": -1,
                             "doc_type": "markdown",
                             "source_type": "local_file",
+                            "source_path": path.name,
                         }
                         for chunk, vector in zip(chunks, vectors)
                     ]
