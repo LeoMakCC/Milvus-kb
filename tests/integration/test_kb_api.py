@@ -21,6 +21,15 @@ class FakeRepository:
         self.items.append(item)
         return item
 
+    def list_email_thread(self, kb_id: str, thread_id: str):
+        return [
+            {
+                "message_id": "<one@example.com>",
+                "thread_id": thread_id,
+                "subject": "付款条件",
+            }
+        ]
+
 
 class FakeIngestionService:
     def __init__(self) -> None:
@@ -138,3 +147,23 @@ def test_search_calls_search_service(portable_root) -> None:
         {"id": 1, "score": 0.9, "text": "付款条件"}
     ]
     assert search.calls == [("kb1", "付款条件", 3)]
+
+
+def test_email_thread_endpoint(portable_root) -> None:
+    app = make_app(portable_root, repository=FakeRepository())
+
+    response = asyncio.run(
+        request(app, "GET", "/api/v1/kbs/kb1/threads/%3Cthread%40example.com%3E")
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "thread_id": "<thread@example.com>",
+        "messages": [
+            {
+                "message_id": "<one@example.com>",
+                "thread_id": "<thread@example.com>",
+                "subject": "付款条件",
+            }
+        ],
+    }

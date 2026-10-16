@@ -57,4 +57,11 @@ def create_kbs_router(repository, ingestion_service) -> APIRouter:
             raise HTTPException(400, str(exc)) from exc
         return asdict(result)
 
+    @router.get("/kbs/{kb_id}/threads/{thread_id}")
+    def email_thread(kb_id: str, thread_id: str):
+        return {
+            "thread_id": thread_id,
+            "messages": repository.list_email_thread(kb_id, thread_id),
+        }
+
     return router
