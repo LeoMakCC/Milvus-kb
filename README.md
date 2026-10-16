@@ -69,9 +69,14 @@ Provider configs can also be managed through `/api/v1/providers`. API keys are s
 
 ## Desktop UI
 
-The desktop window contains four workspace tabs:
+The desktop window contains five workspace tabs:
 
 - `问答`: conversations, streaming answers, citations, and follow-up questions.
 - `检索`: direct hybrid retrieval results.
 - `知识库`: document roots and sync status.
 - `模型`: provider CRUD, connection tests, and active-model selection.
+- `设置`: LAN mode, shared password, and restart-required status.
+
+## LAN Mode
+
+LAN access is disabled by default. Enable it in the `设置` tab and set a shared password. The desktop app bypasses login for local requests; remote devices receive a login prompt. Changing the LAN setting requires an application restart.

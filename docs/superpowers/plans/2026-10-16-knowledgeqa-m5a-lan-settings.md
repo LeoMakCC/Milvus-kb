@@ -1,6 +1,6 @@
 # KnowledgeQA M5A LAN Access And Settings Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add optional LAN access with a shared password and session tokens, plus a settings API and desktop settings page.
 
@@ -17,7 +17,7 @@
 - Create: `src/knowledgeqa/security/sessions.py`
 - Test: `tests/unit/test_auth_security.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -37,7 +37,7 @@ sessions.revoke(token)
 assert sessions.validate(token) is False
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Use `hashlib.scrypt` and `secrets.token_urlsafe`. Store the salt with the hash.
 
@@ -49,7 +49,7 @@ Use `hashlib.scrypt` and `secrets.token_urlsafe`. Store the salt with the hash.
 - Modify: `src/knowledgeqa/repository.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -60,7 +60,7 @@ repo.set_setting("shared_password_hash", "hash")
 assert repo.get_app_settings()["shared_password_hash"] == "hash"
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Methods:
 
@@ -79,7 +79,7 @@ get_app_settings() -> dict
 - Modify: `src/knowledgeqa/api/app.py`
 - Test: `tests/integration/test_auth_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -91,7 +91,7 @@ Cover:
 
 Use `httpx.ASGITransport(..., client=("1.2.3.4", 1234))` to simulate remote clients.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Middleware rules:
 
@@ -118,7 +118,7 @@ GET  /api/v1/auth/session
 - Modify: `src/knowledgeqa/api/app.py`
 - Test: `tests/integration/test_settings_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -140,7 +140,7 @@ Response fields:
 
 Password is accepted only on write and never returned.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 On password change, hash and store `shared_password_hash`.
 
@@ -154,7 +154,7 @@ On password change, hash and store `shared_password_hash`.
 - Modify: `src/knowledgeqa/web/app.js`
 - Modify: `tests/integration/test_health_api.py`
 
-- [ ] **Step 1: Add UI contract IDs**
+- [x] **Step 1: Add UI contract IDs**
 
 ```text
 id="settingsPanel"
@@ -163,7 +163,7 @@ id="sharedPassword"
 id="saveSettingsButton"
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Add a `设置` tab with:
 
@@ -183,16 +183,16 @@ The API helper must attach the bearer token when one is stored locally.
 - Modify: `src/knowledgeqa/desktop.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Read LAN setting at startup**
+- [x] **Step 1: Read LAN setting at startup**
 
 If `lan_enabled` is true in SQLite, bind FastAPI to `0.0.0.0`; otherwise bind to `127.0.0.1`.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-- [ ] **Step 3: Live verification**
+- [x] **Step 3: Live verification**
 
 Use 8788. Confirm local requests bypass login, settings save, and the restart-required state is visible.

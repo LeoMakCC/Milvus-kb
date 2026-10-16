@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import webview
 
 from knowledgeqa.answer import AnswerService
+from knowledgeqa.api.auth import AuthGuard
 from knowledgeqa.api.app import create_app
 from knowledgeqa.config import AppPaths, Settings
 from knowledgeqa.db.connection import connect
@@ -19,6 +21,7 @@ from knowledgeqa.providers.manager import ProviderManager
 from knowledgeqa.providers.openai_compatible import OpenAICompatibleProvider
 from knowledgeqa.repository import Repository
 from knowledgeqa.security.secret_store import WindowsSecretStore
+from knowledgeqa.security.sessions import SessionManager
 from knowledgeqa.server import ServerRunner
 from knowledgeqa.services.ingestion import IngestionService
 from knowledgeqa.services.email_ingestion import EmailIngestionService
@@ -66,9 +69,15 @@ def main(docker_controller: DockerController | None = None) -> int:
     if not lock.try_acquire():
         return 0
 
-    settings = Settings.from_env()
-    controller = docker_controller or DockerController(root / "docker-compose.yml")
     repository = Repository(paths.db_path)
+    settings = Settings.from_env()
+    lan_enabled = repository.get_setting("lan_enabled", "0") == "1"
+    settings = replace(
+        settings,
+        host="0.0.0.0" if lan_enabled else settings.host,
+        lan_enabled=lan_enabled,
+    )
+    controller = docker_controller or DockerController(root / "docker-compose.yml")
     embedder = FastEmbedEmbedder()
     milvus_store = MilvusStore(settings.milvus_uri)
     email_ingestion_service = EmailIngestionService(
@@ -104,6 +113,10 @@ def main(docker_controller: DockerController | None = None) -> int:
         model_name=settings.llm_model,
         provider_resolver=provider_manager.active,
     )
+    auth_guard = AuthGuard(
+        repository=repository,
+        sessions=SessionManager(),
+    )
     app = create_app(
         settings=settings,
         paths=paths,
@@ -121,6 +134,7 @@ def main(docker_controller: DockerController | None = None) -> int:
         answer_service=answer_service,
         provider_manager=provider_manager,
         secret_store=secret_store,
+        auth_guard=auth_guard,
     )
     runner = ServerRunner(app, settings)
 
