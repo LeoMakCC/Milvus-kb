@@ -198,3 +198,100 @@ class Repository:
                 (document_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def upsert_email(
+        self,
+        document_id: str,
+        message_id: str | None,
+        thread_id: str | None,
+        subject: str,
+        from_addr: str,
+        to_addr: str,
+        cc_addr: str,
+        sent_at: str,
+        message_hash: str,
+    ) -> dict:
+        existing = self.get_email_by_document_id(document_id)
+        if existing:
+            with connect(self._db_path) as conn:
+                conn.execute(
+                    """
+                    UPDATE emails
+                    SET message_id = ?, thread_id = ?, subject = ?,
+                        from_addr = ?, to_addr = ?, cc_addr = ?,
+                        sent_at = ?, message_hash = ?
+                    WHERE document_id = ?
+                    """,
+                    (
+                        message_id,
+                        thread_id,
+                        subject,
+                        from_addr,
+                        to_addr,
+                        cc_addr,
+                        sent_at,
+                        message_hash,
+                        document_id,
+                    ),
+                )
+                conn.commit()
+            return self.get_email_by_document_id(document_id)
+
+        email_id = uuid4().hex
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO emails(
+                    id, document_id, message_id, thread_id, subject,
+                    from_addr, to_addr, cc_addr, sent_at, message_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    email_id,
+                    document_id,
+                    message_id,
+                    thread_id,
+                    subject,
+                    from_addr,
+                    to_addr,
+                    cc_addr,
+                    sent_at,
+                    message_hash,
+                ),
+            )
+            conn.commit()
+        return self.get_email_by_document_id(document_id)
+
+    def get_email_by_document_id(self, document_id: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM emails WHERE document_id = ?",
+                (document_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_email_by_message_id(self, kb_id: str, message_id: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT emails.*
+                FROM emails
+                JOIN documents ON documents.id = emails.document_id
+                WHERE documents.kb_id = ? AND emails.message_id = ?
+                """,
+                (kb_id, message_id),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_email_by_hash(self, kb_id: str, message_hash: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT emails.*
+                FROM emails
+                JOIN documents ON documents.id = emails.document_id
+                WHERE documents.kb_id = ? AND emails.message_hash = ?
+                """,
+                (kb_id, message_hash),
+            ).fetchone()
+        return dict(row) if row else None

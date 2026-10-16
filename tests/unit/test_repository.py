@@ -56,3 +56,36 @@ def test_upsert_document_and_replace_chunks(tmp_path: Path) -> None:
 
     assert updated["id"] == document["id"]
     assert updated["source_hash"] == "hash2"
+
+
+def test_upsert_email_and_find_by_message_id(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+    kb = repo.create_knowledge_base(name="邮件", dimension=2)
+    document = repo.upsert_document(
+        kb_id=kb["id"],
+        canonical_path="mail#1",
+        file_name="mail.eml",
+        doc_type="email",
+        source_type="email_file",
+        source_hash="hash",
+        index_status="indexed",
+    )
+
+    repo.upsert_email(
+        document_id=document["id"],
+        message_id="<abc@example.com>",
+        thread_id="<thread@example.com>",
+        subject="付款条件",
+        from_addr="a@example.com",
+        to_addr="b@example.com",
+        cc_addr="",
+        sent_at="2026-10-16T00:00:00Z",
+        message_hash="mh1",
+    )
+
+    assert (
+        repo.get_email_by_message_id(kb["id"], "<abc@example.com>")["subject"]
+        == "付款条件"
+    )
+    assert repo.get_email_by_hash(kb["id"], "mh1")["document_id"] == document["id"]
