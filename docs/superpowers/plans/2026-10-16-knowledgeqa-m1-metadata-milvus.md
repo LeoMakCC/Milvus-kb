@@ -1,6 +1,6 @@
 # KnowledgeQA M1 Metadata And Milvus Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add SQLite schema migrations, Milvus collection schema creation, Docker lifecycle control, and a status service wired into the desktop app.
 
@@ -41,7 +41,7 @@
 - Test: `tests/unit/test_db_migrations.py`
 - Modify: `pyproject.toml`
 
-- [ ] **Step 1: Write the failing connection test**
+- [x] **Step 1: Write the failing connection test**
 
 Create `tests/unit/test_db_connection.py`:
 
@@ -62,7 +62,7 @@ def test_connect_enables_wal_and_foreign_keys(tmp_path: Path) -> None:
     assert foreign_keys == 1
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -72,7 +72,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.db'`.
 
-- [ ] **Step 3: Implement the SQLite connection**
+- [x] **Step 3: Implement the SQLite connection**
 
 Create `src/knowledgeqa/db/__init__.py`:
 
@@ -98,7 +98,7 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 ```
 
-- [ ] **Step 4: Run the connection test to verify it passes**
+- [x] **Step 4: Run the connection test to verify it passes**
 
 Run:
 
@@ -108,7 +108,7 @@ Run:
 
 Expected: 1 passed.
 
-- [ ] **Step 5: Write the failing migration test**
+- [x] **Step 5: Write the failing migration test**
 
 Create `tests/unit/test_db_migrations.py`:
 
@@ -158,7 +158,7 @@ def test_apply_migrations_is_idempotent(tmp_path: Path) -> None:
         conn.close()
 ```
 
-- [ ] **Step 6: Run the migration test to verify it fails**
+- [x] **Step 6: Run the migration test to verify it fails**
 
 Run:
 
@@ -168,7 +168,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.db.migrations'`.
 
-- [ ] **Step 7: Implement migration runner and initial schema**
+- [x] **Step 7: Implement migration runner and initial schema**
 
 Create `src/knowledgeqa/db/migrations.py`:
 
@@ -263,7 +263,7 @@ At minimum include:
 - `audit_logs`
 - all index statements from the design document
 
-- [ ] **Step 8: Add migration SQL to package data**
+- [x] **Step 8: Add migration SQL to package data**
 
 Modify `pyproject.toml`:
 
@@ -272,7 +272,7 @@ Modify `pyproject.toml`:
 knowledgeqa = ["web/*", "db/migrations/*.sql"]
 ```
 
-- [ ] **Step 9: Run migration tests to verify they pass**
+- [x] **Step 9: Run migration tests to verify they pass**
 
 Run:
 
@@ -282,7 +282,7 @@ Run:
 
 Expected: 3 passed.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```powershell
 git add pyproject.toml src/knowledgeqa/db tests/unit/test_db_connection.py tests/unit/test_db_migrations.py
@@ -299,7 +299,7 @@ git commit -m "feat: add sqlite migrations"
 - Create: `src/knowledgeqa/milvus/schema.py`
 - Test: `tests/unit/test_milvus_schema.py`
 
-- [ ] **Step 1: Add pymilvus dependency**
+- [x] **Step 1: Add pymilvus dependency**
 
 Modify `pyproject.toml` dependencies by adding:
 
@@ -307,7 +307,7 @@ Modify `pyproject.toml` dependencies by adding:
   "pymilvus>=2.5,<3",
 ```
 
-- [ ] **Step 2: Write the failing schema test**
+- [x] **Step 2: Write the failing schema test**
 
 Create `tests/unit/test_milvus_schema.py`:
 
@@ -380,7 +380,7 @@ def test_create_knowledge_base_collection_builds_expected_contract() -> None:
     assert client.indexes.indexes[1]["field_name"] == "sparse"
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run:
 
@@ -391,7 +391,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.milvus'`.
 
-- [ ] **Step 4: Implement the schema builder**
+- [x] **Step 4: Implement the schema builder**
 
 Create `src/knowledgeqa/milvus/__init__.py`:
 
@@ -457,7 +457,7 @@ def create_knowledge_base_collection(client, kb_id: str, dim: int) -> None:
     )
 ```
 
-- [ ] **Step 5: Run the schema test to verify it passes**
+- [x] **Step 5: Run the schema test to verify it passes**
 
 Run:
 
@@ -467,7 +467,7 @@ Run:
 
 Expected: 2 passed.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add pyproject.toml src/knowledgeqa/milvus tests/unit/test_milvus_schema.py
@@ -482,7 +482,7 @@ git commit -m "feat: add milvus schema builder"
 - Create: `src/knowledgeqa/docker_control.py`
 - Test: `tests/unit/test_docker_control.py`
 
-- [ ] **Step 1: Write the failing Docker controller test**
+- [x] **Step 1: Write the failing Docker controller test**
 
 Create `tests/unit/test_docker_control.py`:
 
@@ -531,7 +531,7 @@ def test_compose_up_uses_project_name_and_file(tmp_path: Path) -> None:
     ]
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -541,7 +541,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.docker_control'`.
 
-- [ ] **Step 3: Implement the Docker controller**
+- [x] **Step 3: Implement the Docker controller**
 
 Create `src/knowledgeqa/docker_control.py`:
 
@@ -618,7 +618,7 @@ class DockerController:
         )
 ```
 
-- [ ] **Step 4: Run the Docker controller tests to verify they pass**
+- [x] **Step 4: Run the Docker controller tests to verify they pass**
 
 Run:
 
@@ -628,7 +628,7 @@ Run:
 
 Expected: 2 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/knowledgeqa/docker_control.py tests/unit/test_docker_control.py
@@ -644,7 +644,7 @@ git commit -m "feat: add docker controller"
 - Modify: `src/knowledgeqa/desktop.py`
 - Test: `tests/unit/test_status.py`
 
-- [ ] **Step 1: Write the failing status service test**
+- [x] **Step 1: Write the failing status service test**
 
 Create `tests/unit/test_status.py`:
 
@@ -677,7 +677,7 @@ def test_status_snapshot_aggregates_dependencies() -> None:
     }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -687,7 +687,7 @@ Run:
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'knowledgeqa.status'`.
 
-- [ ] **Step 3: Implement status service**
+- [x] **Step 3: Implement status service**
 
 Create `src/knowledgeqa/status.py`:
 
@@ -722,7 +722,7 @@ class StatusService:
         }
 ```
 
-- [ ] **Step 4: Run the status service test to verify it passes**
+- [x] **Step 4: Run the status service test to verify it passes**
 
 Run:
 
@@ -732,7 +732,7 @@ Run:
 
 Expected: 1 passed.
 
-- [ ] **Step 5: Integrate migrations and status into desktop startup**
+- [x] **Step 5: Integrate migrations and status into desktop startup**
 
 Modify `src/knowledgeqa/desktop.py`:
 
@@ -744,7 +744,7 @@ Modify `src/knowledgeqa/desktop.py`:
 
 The `milvus_available` callable for M1 remains `lambda: False`; M2 replaces it with a real Milvus probe.
 
-- [ ] **Step 6: Update desktop orchestration test**
+- [x] **Step 6: Update desktop orchestration test**
 
 Modify `tests/unit/test_desktop.py` so `test_main_starts_window_and_stops_server` creates a temporary `docker-compose.yml` and sets:
 
@@ -753,7 +753,7 @@ Modify `tests/unit/test_desktop.py` so `test_main_starts_window_and_stops_server
 
 Use the existing fake runner and fake webview.
 
-- [ ] **Step 7: Run all tests**
+- [x] **Step 7: Run all tests**
 
 Run:
 
@@ -763,7 +763,7 @@ Run:
 
 Expected: all tests pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add src/knowledgeqa/status.py src/knowledgeqa/desktop.py tests/unit/test_status.py tests/unit/test_desktop.py
