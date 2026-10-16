@@ -49,3 +49,4 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8787
     lan_enabled: bool = False
+    milvus_uri: str = "http://localhost:19530"

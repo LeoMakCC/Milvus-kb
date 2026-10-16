@@ -11,8 +11,13 @@ from knowledgeqa.config import AppPaths, Settings
 from knowledgeqa.db.connection import connect
 from knowledgeqa.db.migrations import apply_migrations, current_version
 from knowledgeqa.docker_control import DockerController
+from knowledgeqa.embedding import FastEmbedEmbedder
 from knowledgeqa.instance_lock import InstanceLock
+from knowledgeqa.milvus.store import MilvusStore
+from knowledgeqa.repository import Repository
 from knowledgeqa.server import ServerRunner
+from knowledgeqa.services.ingestion import IngestionService
+from knowledgeqa.services.search import SearchService
 from knowledgeqa.status import StatusService
 
 
@@ -58,6 +63,11 @@ def main(docker_controller: DockerController | None = None) -> int:
 
     settings = Settings()
     controller = docker_controller or DockerController(root / "docker-compose.yml")
+    repository = Repository(paths.db_path)
+    embedder = FastEmbedEmbedder()
+    milvus_store = MilvusStore(settings.milvus_uri)
+    ingestion_service = IngestionService(repository, embedder, milvus_store)
+    search_service = SearchService(repository, embedder, milvus_store)
     app = create_app(
         settings=settings,
         paths=paths,
@@ -69,6 +79,9 @@ def main(docker_controller: DockerController | None = None) -> int:
             milvus_available=lambda: False,
             db_schema_version=lambda: schema_version,
         ),
+        repository=repository,
+        ingestion_service=ingestion_service,
+        search_service=search_service,
     )
     runner = ServerRunner(app, settings)
 
