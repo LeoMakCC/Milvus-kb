@@ -17,6 +17,7 @@ from knowledgeqa.db.migrations import apply_migrations, current_version
 from knowledgeqa.docker_control import DockerController
 from knowledgeqa.embedding import FastEmbedEmbedder
 from knowledgeqa.instance_lock import InstanceLock
+from knowledgeqa.lifecycle import ExitChoice, ExitCoordinator, ExitDecision
 from knowledgeqa.logging_setup import configure_logging
 from knowledgeqa.milvus.store import MilvusStore
 from knowledgeqa.providers.manager import ProviderManager
@@ -29,6 +30,7 @@ from knowledgeqa.services.ingestion import IngestionService
 from knowledgeqa.services.email_ingestion import EmailIngestionService
 from knowledgeqa.services.search import SearchService
 from knowledgeqa.status import StatusService
+from knowledgeqa.tray import TrayController
 
 
 def portable_root() -> Path:
@@ -53,6 +55,22 @@ def build_status(
         db_schema_version=db_schema_version,
         jobs_running=jobs_running,
     ).snapshot()
+
+
+def request_exit(
+    window,
+    jobs_running: Callable[[], int],
+    choice_provider: Callable[[], ExitChoice] | None = None,
+) -> bool:
+    coordinator = ExitCoordinator(jobs_running=jobs_running)
+    decision = coordinator.decide(
+        choice_provider=choice_provider
+        or (lambda: ExitChoice.STOP_AND_EXIT)
+    )
+    if decision in (ExitDecision.EXIT, ExitDecision.STOP_AND_EXIT):
+        window.destroy()
+        return True
+    return False
 
 
 def main(docker_controller: DockerController | None = None) -> int:
@@ -153,20 +171,33 @@ def main(docker_controller: DockerController | None = None) -> int:
         restore_service=restore_service,
     )
     runner = ServerRunner(app, settings)
+    tray = None
 
     try:
         runner.start()
         if not runner.wait_until_ready():
             return 1
-        webview.create_window(
+        window = webview.create_window(
             "KnowledgeQA",
             f"http://{settings.host}:{settings.port}",
             width=1180,
             height=780,
             min_size=(920, 620),
         )
+        if hasattr(window, "events"):
+            window.events.closing += lambda: (window.hide(), False)[1]
+        tray = TrayController(
+            on_show=window.show,
+            on_quit=lambda: request_exit(
+                window,
+                jobs_running=lambda: 0,
+            ),
+        )
+        tray.start()
         webview.start()
     finally:
+        if tray is not None:
+            tray.stop()
         runner.stop()
         lock.release()
     return 0

@@ -44,16 +44,38 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
 
     class FakeWebview:
         @staticmethod
-        def create_window(*args, **kwargs) -> None:
+        def create_window(*args, **kwargs):
             calls.append("window")
+            return FakeWindow()
 
         @staticmethod
         def start() -> None:
             calls.append("webview_start")
 
+    class FakeWindow:
+        def show(self) -> None:
+            pass
+
+        def hide(self) -> None:
+            pass
+
+        def destroy(self) -> None:
+            pass
+
+    class FakeTray:
+        def __init__(self, on_show, on_quit) -> None:
+            calls.append("tray_create")
+
+        def start(self) -> None:
+            calls.append("tray_start")
+
+        def stop(self) -> None:
+            calls.append("tray_stop")
+
     monkeypatch.setattr(desktop, "portable_root", lambda: tmp_path)
     monkeypatch.setattr(desktop, "ServerRunner", FakeRunner)
     monkeypatch.setattr(desktop, "webview", FakeWebview)
+    monkeypatch.setattr(desktop, "TrayController", FakeTray)
 
     class FakeDockerController:
         def is_available(self) -> bool:
@@ -69,7 +91,10 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
         "server_start",
         "server_ready",
         "window",
+        "tray_create",
+        "tray_start",
         "webview_start",
+        "tray_stop",
         "server_stop",
     ]
 
@@ -81,3 +106,34 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
     status = asyncio.run(fetch_status()).json()
     assert status["db_schema_version"] == 2
     assert status["docker_available"] is False
+
+
+def test_request_exit_destroys_window_when_no_jobs() -> None:
+    class FakeWindow:
+        destroyed = False
+
+        def destroy(self) -> None:
+            self.destroyed = True
+
+    window = FakeWindow()
+
+    assert desktop.request_exit(window, jobs_running=lambda: 0) is True
+    assert window.destroyed is True
+
+
+def test_request_exit_can_keep_running_with_jobs() -> None:
+    class FakeWindow:
+        destroyed = False
+
+        def destroy(self) -> None:
+            self.destroyed = True
+
+    window = FakeWindow()
+    decision = desktop.request_exit(
+        window,
+        jobs_running=lambda: 1,
+        choice_provider=lambda: desktop.ExitChoice.KEEP_RUNNING,
+    )
+
+    assert decision is False
+    assert window.destroyed is False
