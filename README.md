@@ -42,4 +42,4 @@ Expected: one Markdown file is ingested, one vector is inserted, and a related q
 - Office: `.pdf`, `.docx`, `.xlsx`, `.xlsm`, `.pptx`
 - Email: `.eml`, `.mbox`, `.mbx`, `.msg`
 
-Email messages are deduplicated by `Message-ID` when available. Attachment names are indexed in M3B; attachment content parsing is added in M3C.
+Email messages are deduplicated by `Message-ID` when available. Supported attachment formats are parsed and deduplicated by content hash. Unsupported attachments are recorded by file name.

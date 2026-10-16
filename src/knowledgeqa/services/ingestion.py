@@ -42,6 +42,14 @@ class IngestionService:
             inserted=document_result.inserted + email_result.inserted,
             skipped=document_result.skipped + email_result.skipped,
             failed=document_result.failed + email_result.failed,
+            attachments_inserted=(
+                document_result.attachments_inserted
+                + email_result.attachments_inserted
+            ),
+            attachments_reused=(
+                document_result.attachments_reused
+                + email_result.attachments_reused
+            ),
         )
 
     def sync_documents(self, kb_id: str, directory: Path) -> SyncResult:

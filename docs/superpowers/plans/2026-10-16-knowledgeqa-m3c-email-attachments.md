@@ -1,6 +1,6 @@
 # KnowledgeQA M3C Email Attachments Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Index supported email attachment content, deduplicate attachments by content hash, and preserve email/attachment parent-child relationships.
 
@@ -18,7 +18,7 @@
 - Test: `tests/unit/test_db_migrations.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Add failing migration test**
+- [x] **Step 1: Add failing migration test**
 
 Apply migrations and assert:
 
@@ -30,7 +30,7 @@ tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE t
 assert "email_attachments" in tables
 ```
 
-- [ ] **Step 2: Implement migration**
+- [x] **Step 2: Implement migration**
 
 ```sql
 ALTER TABLE documents ADD COLUMN parent_document_id TEXT;
@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_email_attachments_hash
     ON email_attachments(content_hash);
 ```
 
-- [ ] **Step 3: Extend repository**
+- [x] **Step 3: Extend repository**
 
 Add:
 
@@ -74,7 +74,7 @@ def list_email_thread(self, kb_id: str, thread_id: str) -> list[dict]: ...
 
 `upsert_document` must accept `parent_document_id: str | None = None`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_db_migrations.py tests/unit/test_repository.py -v
@@ -91,7 +91,7 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/services/email_ingestion.py`
 - Test: `tests/unit/test_email_ingestion.py`
 
-- [ ] **Step 1: Extend SyncResult**
+- [x] **Step 1: Extend SyncResult**
 
 Add defaults:
 
@@ -100,7 +100,7 @@ attachments_inserted: int = 0
 attachments_reused: int = 0
 ```
 
-- [ ] **Step 2: Write failing attachment tests**
+- [x] **Step 2: Write failing attachment tests**
 
 Cover:
 
@@ -110,7 +110,7 @@ Cover:
 - same attachment in a second email reuses the first attachment document;
 - `attachments_inserted == 1` and `attachments_reused == 1` in that scenario.
 
-- [ ] **Step 3: Implement attachment ingestion**
+- [x] **Step 3: Implement attachment ingestion**
 
 For each `EmailAttachment`:
 
@@ -128,7 +128,7 @@ source_path=f"{path.name}::{attachment.file_name}"
 page_no=chunk.page_no
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_email_ingestion.py -v
@@ -145,7 +145,7 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/web/app.js`
 - Modify: `tests/integration/test_kb_api.py`
 
-- [ ] **Step 1: Update API test**
+- [x] **Step 1: Update API test**
 
 Assert sync response contains:
 
@@ -160,7 +160,7 @@ Assert sync response contains:
 }
 ```
 
-- [ ] **Step 2: Update UI result line**
+- [x] **Step 2: Update UI result line**
 
 Display:
 
@@ -168,7 +168,7 @@ Display:
 扫描 X | 邮件/文档 Y | 跳过 Z | 附件新增 A | 附件复用 B | 失败 F
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_kb_api.py -v
@@ -184,11 +184,11 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/api/routes/kbs.py`
 - Test: `tests/integration/test_kb_api.py`
 
-- [ ] **Step 1: Write failing API test**
+- [x] **Step 1: Write failing API test**
 
 Add `GET /api/v1/kbs/{kb_id}/threads/{thread_id}`. The route calls `repository.list_email_thread`.
 
-- [ ] **Step 2: Implement route**
+- [x] **Step 2: Implement route**
 
 Return:
 
@@ -201,7 +201,7 @@ Return:
 
 Messages are ordered by `sent_at`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_kb_api.py -v
@@ -216,7 +216,7 @@ Expected: all pass.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Run the full suite**
+- [x] **Step 1: Run the full suite**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
@@ -224,11 +224,11 @@ Expected: all pass.
 
 Expected: all pass.
 
-- [ ] **Step 2: Restart 8788**
+- [x] **Step 2: Restart 8788**
 
 Restart the desktop process so it loads M3C.
 
-- [ ] **Step 3: Create two `.eml` files sharing one `.txt` attachment**
+- [x] **Step 3: Create two `.eml` files sharing one `.txt` attachment**
 
 Use the live API to sync. Confirm:
 
@@ -237,4 +237,4 @@ Use the live API to sync. Confirm:
 - searching attachment text returns a result with `doc_type="txt"` and a source path containing the attachment name;
 - email thread endpoint returns the related messages.
 
-- [ ] **Step 4: Clean up temporary collection and SQLite rows.**
+- [x] **Step 4: Clean up temporary collection and SQLite rows.**

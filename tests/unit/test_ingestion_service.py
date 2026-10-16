@@ -105,7 +105,14 @@ def test_sync_documents_ingests_supported_formats(tmp_path: Path) -> None:
 
 class FakeEmailIngestionService:
     def sync_emails(self, kb_id: str, directory: Path) -> SyncResult:
-        return SyncResult(scanned=2, inserted=1, skipped=1, failed=0)
+        return SyncResult(
+            scanned=2,
+            inserted=1,
+            skipped=1,
+            failed=0,
+            attachments_inserted=1,
+            attachments_reused=2,
+        )
 
 
 def test_sync_all_combines_document_and_email_counts(tmp_path: Path) -> None:
@@ -123,3 +130,5 @@ def test_sync_all_combines_document_and_email_counts(tmp_path: Path) -> None:
     assert result.inserted == 2
     assert result.skipped == 1
     assert result.failed == 0
+    assert result.attachments_inserted == 1
+    assert result.attachments_reused == 2
