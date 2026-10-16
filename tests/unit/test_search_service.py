@@ -27,7 +27,10 @@ class FakeMilvusStore:
         limit: int = 20,
     ):
         self.calls.append(("hybrid", kb_id, dense_vector, query_text, limit))
-        return [{"id": 1, "score": 0.9, "text": "付款条件"}]
+        return [
+            {"id": 1, "score": 0.9, "text": "付款条件"},
+            {"id": 2, "score": 0.8, "text": "第二结果"},
+        ]
 
     def search(self, kb_id: str, vector: list[float], limit: int = 5):
         self.calls.append(("dense", kb_id, vector, limit))
@@ -51,7 +54,7 @@ def test_search_embeds_query_and_delegates_to_milvus() -> None:
 
     hits = service.search("kb1", "付款条件", limit=3)
 
-    assert hits == [{"id": 1, "score": 0.9, "text": "付款条件"}]
+    assert hits[0] == {"id": 1, "score": 0.9, "text": "付款条件"}
     assert embedder.inputs == [["付款条件"]]
     assert store.calls == [("hybrid", "kb1", [0.1, 0.2], "付款条件", 3)]
 
@@ -64,3 +67,39 @@ def test_search_falls_back_to_dense_when_hybrid_is_unavailable() -> None:
 
     assert hits == [{"id": 2, "score": 0.8, "text": "稠密结果"}]
     assert store.calls == [("kb1", [0.1, 0.2], 3)]
+
+
+class ReversingReranker:
+    def rerank(self, query: str, hits: list[dict], top_k: int):
+        return list(reversed(hits))[:top_k]
+
+
+class FailingReranker:
+    def rerank(self, query: str, hits: list[dict], top_k: int):
+        raise RuntimeError("rerank failed")
+
+
+def test_search_applies_reranker_when_configured() -> None:
+    service = SearchService(
+        FakeRepository(),
+        FakeEmbedder(),
+        FakeMilvusStore(),
+        reranker=ReversingReranker(),
+    )
+
+    hits = service.search("kb1", "付款条件", limit=1)
+
+    assert hits == [{"id": 2, "score": 0.8, "text": "第二结果"}]
+
+
+def test_search_falls_back_when_reranker_fails() -> None:
+    service = SearchService(
+        FakeRepository(),
+        FakeEmbedder(),
+        FakeMilvusStore(),
+        reranker=FailingReranker(),
+    )
+
+    hits = service.search("kb1", "付款条件", limit=1)
+
+    assert hits == [{"id": 1, "score": 0.9, "text": "付款条件"}]
