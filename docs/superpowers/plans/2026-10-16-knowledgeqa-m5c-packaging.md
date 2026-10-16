@@ -1,6 +1,6 @@
 # KnowledgeQA M5C Tray And Packaging Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add tray behavior and exit protection, expose Docker lifecycle actions, and produce a portable PyInstaller build with a SHA-256 release manifest.
 
@@ -16,7 +16,7 @@
 - Create: `src/knowledgeqa/tray.py`
 - Test: `tests/unit/test_tray.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Use fake icon and menu factories and assert:
 
@@ -24,7 +24,7 @@ Use fake icon and menu factories and assert:
 - callbacks call the injected show/quit callbacks;
 - `stop` calls the icon stop method.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 class TrayController:
@@ -43,7 +43,7 @@ Use pystray and Pillow by default.
 - Modify: `src/knowledgeqa/desktop.py`
 - Test: `tests/unit/test_desktop.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -52,7 +52,7 @@ Cover:
 - exit with running jobs asks for confirmation;
 - exit without jobs proceeds.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Create the webview window as a variable, attach a closing handler, start the tray controller, and stop the tray in `finally`.
 
@@ -69,7 +69,7 @@ Create the webview window as a variable, attach a closing handler, start the tra
 - Modify: `src/knowledgeqa/web/app.js`
 - Test: `tests/integration/test_milvus_api.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -81,7 +81,7 @@ POST /api/v1/milvus/stop
 
 Use a fake Docker controller.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Return:
 
@@ -104,13 +104,13 @@ Settings page gets `启动 Milvus`、`停止 Milvus`、`刷新状态`.
 - Create: `build/pyinstaller/KnowledgeQA.spec`
 - Create: `scripts/build_portable.ps1`
 
-- [ ] **Step 1: Add build dependency**
+- [x] **Step 1: Add build dependency**
 
 ```toml
 "pyinstaller>=6.10,<7",
 ```
 
-- [ ] **Step 2: Implement spec**
+- [x] **Step 2: Implement spec**
 
 Include:
 
@@ -135,7 +135,7 @@ Output: `dist/KnowledgeQA/KnowledgeQA.exe`, `console=False`.
 - Create: `scripts/release_manifest.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Implement release script**
+- [x] **Step 1: Implement release script**
 
 The script:
 
@@ -145,7 +145,7 @@ The script:
 4. writes `.sha256`;
 5. writes `manifest.json` with version, build time, and hashes.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```powershell
 .\scripts\make_release.ps1
@@ -160,6 +160,6 @@ dist\KnowledgeQA-portable.zip.sha256
 dist\manifest.json
 ```
 
-- [ ] **Step 3: Smoke test**
+- [x] **Step 3: Smoke test**
 
 Run `KnowledgeQA.exe` with `KB_PORT=8790`, verify the window opens and `/api/v1/health` responds.

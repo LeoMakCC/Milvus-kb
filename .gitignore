@@ -4,8 +4,10 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-build/
-dist/
+build/*
+!build/pyinstaller/
+!build/pyinstaller/**
+dist/*
 *.egg-info/
 data/
 logs/

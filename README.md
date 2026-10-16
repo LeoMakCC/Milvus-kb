@@ -84,3 +84,32 @@ LAN access is disabled by default. Enable it in the `设置` tab and set a share
 ## Backup And Restore
 
 The `设置` tab can create and restore backups. Backups contain a consistent SQLite snapshot and a version manifest. Milvus data can be included when Docker is available. Restore creates a pre-restore database safety copy before replacing current metadata.
+
+## Packaging
+
+Build the portable Windows bundle:
+
+```powershell
+.\scripts\build_portable.ps1
+```
+
+Create the release zip, SHA-256 file, and manifest:
+
+```powershell
+.\scripts\make_release.ps1
+```
+
+Smoke test the built executable on port 8790:
+
+```powershell
+.\scripts\smoke_portable.ps1
+```
+
+Release artifacts:
+
+```text
+dist\KnowledgeQA\KnowledgeQA.exe
+dist\KnowledgeQA-portable.zip
+dist\KnowledgeQA-portable.zip.sha256
+dist\manifest.json
+```
