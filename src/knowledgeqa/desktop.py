@@ -61,7 +61,7 @@ def main(docker_controller: DockerController | None = None) -> int:
     if not lock.try_acquire():
         return 0
 
-    settings = Settings()
+    settings = Settings.from_env()
     controller = docker_controller or DockerController(root / "docker-compose.yml")
     repository = Repository(paths.db_path)
     embedder = FastEmbedEmbedder()

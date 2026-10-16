@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,3 +52,13 @@ class Settings:
     port: int = 8787
     lan_enabled: bool = False
     milvus_uri: str = "http://localhost:19530"
+
+    @classmethod
+    def from_env(cls, environ: Mapping[str, str] | None = None) -> "Settings":
+        values = os.environ if environ is None else environ
+        return cls(
+            host=values.get("KB_HOST", cls.host),
+            port=int(values.get("KB_PORT", str(cls.port))),
+            lan_enabled=values.get("KB_LAN_ENABLED", "0") == "1",
+            milvus_uri=values.get("KB_MILVUS_URI", cls.milvus_uri),
+        )

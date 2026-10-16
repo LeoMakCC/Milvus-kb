@@ -27,3 +27,20 @@ def test_settings_default_host_and_port() -> None:
     assert settings.host == "127.0.0.1"
     assert settings.port == 8787
     assert settings.lan_enabled is False
+    assert settings.milvus_uri == "http://localhost:19530"
+
+
+def test_settings_from_env_overrides_runtime_values() -> None:
+    settings = Settings.from_env(
+        {
+            "KB_HOST": "0.0.0.0",
+            "KB_PORT": "8788",
+            "KB_LAN_ENABLED": "1",
+            "KB_MILVUS_URI": "http://127.0.0.1:19531",
+        }
+    )
+
+    assert settings.host == "0.0.0.0"
+    assert settings.port == 8788
+    assert settings.lan_enabled is True
+    assert settings.milvus_uri == "http://127.0.0.1:19531"
