@@ -55,12 +55,14 @@ class AnswerService:
         provider,
         model_name: str | None = None,
         query_rewriter=None,
+        provider_resolver=None,
     ) -> None:
         self._repository = repository
         self._search_service = search_service
         self._provider = provider
         self._model_name = model_name
         self._query_rewriter = query_rewriter
+        self._provider_resolver = provider_resolver
 
     def _conversation(self, kb_ids: list[str], conversation_id: str | None):
         if conversation_id:
@@ -118,10 +120,14 @@ class AnswerService:
             return
 
         try:
+            provider = self._provider
+            model_name = self._model_name
+            if self._provider_resolver is not None:
+                provider, model_name = self._provider_resolver()
             messages = build_messages(history, hits, query)
             parts: list[str] = []
-            for chunk in self._provider.stream_chat(
-                ChatRequest(messages=messages, model=self._model_name)
+            for chunk in provider.stream_chat(
+                ChatRequest(messages=messages, model=model_name)
             ):
                 if chunk.done:
                     break

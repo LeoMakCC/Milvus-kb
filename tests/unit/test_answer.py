@@ -142,3 +142,18 @@ def test_query_rewriter_is_used_for_follow_up() -> None:
     list(service.stream_answer(["kb1"], "它呢？", conversation_id="conv1"))
 
     assert search.calls[0][1] == "独立问题"
+
+
+def test_provider_resolver_overrides_constructor_provider() -> None:
+    repository = FakeRepository()
+    resolved_provider = FakeProvider()
+    service = AnswerService(
+        repository=repository,
+        search_service=FakeSearchService(sample_hits()),
+        provider=object(),
+        provider_resolver=lambda: (resolved_provider, "resolved-model"),
+    )
+
+    list(service.stream_answer(["kb1"], "付款条件"))
+
+    assert resolved_provider.requests[0].model == "resolved-model"
