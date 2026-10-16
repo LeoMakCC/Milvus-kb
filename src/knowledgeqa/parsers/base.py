@@ -10,6 +10,10 @@ class UnsupportedDocumentError(ValueError):
     pass
 
 
+class OcrRequiredError(ValueError):
+    pass
+
+
 class DocumentParser(Protocol):
     extensions: set[str]
 

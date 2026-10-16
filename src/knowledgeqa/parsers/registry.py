@@ -5,9 +5,13 @@ from pathlib import Path
 from knowledgeqa.ingestion.models import ParsedDocument
 from knowledgeqa.parsers.base import DocumentParser, UnsupportedDocumentError
 from knowledgeqa.parsers.csv_doc import CsvParser
+from knowledgeqa.parsers.docx import DocxParser
 from knowledgeqa.parsers.html import HtmlParser
 from knowledgeqa.parsers.markdown import parse_markdown
+from knowledgeqa.parsers.pdf import PdfParser
 from knowledgeqa.parsers.plain_text import PlainTextParser
+from knowledgeqa.parsers.pptx import PptxParser
+from knowledgeqa.parsers.xlsx import XlsxParser
 
 
 class MarkdownParser:
@@ -22,6 +26,10 @@ PARSERS: list[DocumentParser] = [
     PlainTextParser(),
     HtmlParser(),
     CsvParser(),
+    PdfParser(),
+    DocxParser(),
+    XlsxParser(),
+    PptxParser(),
 ]
 
 
