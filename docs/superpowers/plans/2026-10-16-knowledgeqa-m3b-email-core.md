@@ -1,6 +1,6 @@
 # KnowledgeQA M3B Email Core Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Index `.eml`, `.mbox`, and `.msg` email files with headers, bodies, thread fields, and deduplication.
 
@@ -17,7 +17,7 @@
 - Modify: `src/knowledgeqa/repository.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -50,7 +50,7 @@ def test_upsert_email_and_find_by_message_id(tmp_path):
     assert repo.get_email_by_hash(kb["id"], "mh1")["document_id"] == document["id"]
 ```
 
-- [ ] **Step 2: Implement models**
+- [x] **Step 2: Implement models**
 
 ```python
 @dataclass(frozen=True)
@@ -75,11 +75,11 @@ class ParsedEmail:
     attachments: list[EmailAttachment] = field(default_factory=list)
 ```
 
-- [ ] **Step 3: Implement repository methods**
+- [x] **Step 3: Implement repository methods**
 
 Add `upsert_email`, `get_email_by_message_id`, `get_email_by_hash`, and `get_email_by_document_id` using the existing `emails` table.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_repository.py -v
@@ -95,7 +95,7 @@ Expected: all pass.
 - Create: `src/knowledgeqa/parsers/email_parser.py`
 - Test: `tests/unit/test_email_parsers.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -105,7 +105,7 @@ Cover:
 - attachment names are appended as an `附件: name` section.
 - `Thread-Index` or `References` becomes `thread_id`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 Functions:
 
@@ -119,7 +119,7 @@ Use stdlib `email` policies for header decoding. For `.mbox`, use `mailbox.mbox`
 
 Compute `message_hash` from normalized subject, from, to, date, and plain-text body.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_email_parsers.py -v
@@ -136,13 +136,13 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/parsers/email_parser.py`
 - Test: `tests/unit/test_email_parsers.py`
 
-- [ ] **Step 1: Add dependency**
+- [x] **Step 1: Add dependency**
 
 ```toml
 "extract-msg>=0.50,<1",
 ```
 
-- [ ] **Step 2: Write a mocked failing test**
+- [x] **Step 2: Write a mocked failing test**
 
 Patch `extract_msg.Message` to return an object with:
 
@@ -152,11 +152,11 @@ subject, sender, to, cc, date, messageId, body, attachments
 
 Assert one `ParsedEmail` is produced with the expected fields.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `parse_msg(path)` reads fields defensively and converts `date` to ISO 8601 when possible. Attachment objects expose `longFilename` or `shortFilename`, `mimetype`, and `data`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
@@ -174,7 +174,7 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/services/ingestion.py`
 - Test: `tests/unit/test_email_ingestion.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -184,7 +184,7 @@ Cover:
 - chunk rows use `doc_type="email"`;
 - body and attachment names are searchable text.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `EmailIngestionService.sync_emails(kb_id, directory) -> SyncResult`:
 
@@ -202,7 +202,7 @@ Update `IngestionService.sync_all` to combine document and email results.
 - inserted means unique messages indexed.
 - skipped means duplicate messages.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_email_ingestion.py -v
@@ -218,11 +218,11 @@ Expected: all pass.
 - Modify: `src/knowledgeqa/api/routes/kbs.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Change sync route preference**
+- [x] **Step 1: Change sync route preference**
 
 Call `sync_all` first, then `sync_documents`, then `sync_markdown`.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
@@ -230,7 +230,7 @@ Call `sync_all` first, then `sync_documents`, then `sync_markdown`.
 
 Expected: all pass.
 
-- [ ] **Step 3: Live verification**
+- [x] **Step 3: Live verification**
 
 Create a temporary folder with one `.eml` and one `.mbox` containing duplicate `Message-ID`. Sync through 8788 and confirm:
 

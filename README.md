@@ -40,5 +40,6 @@ Expected: one Markdown file is ingested, one vector is inserted, and a related q
 - Text and code: `.txt`, `.log`, `.py`, `.js`, `.ts`, `.java`, `.go`, `.sql`, `.json`, `.yaml`, `.yml`
 - Web and data: `.html`, `.htm`, `.csv`
 - Office: `.pdf`, `.docx`, `.xlsx`, `.xlsm`, `.pptx`
+- Email: `.eml`, `.mbox`, `.mbx`, `.msg`
 
-Email formats are added in M3B.
+Email messages are deduplicated by `Message-ID` when available. Attachment names are indexed in M3B; attachment content parsing is added in M3C.
