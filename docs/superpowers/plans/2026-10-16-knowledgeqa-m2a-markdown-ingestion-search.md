@@ -1,6 +1,6 @@
 # KnowledgeQA M2A Markdown Ingestion And Search Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add the first vertical slice: create a knowledge base, ingest Markdown files, generate local embeddings, write vectors to Milvus, and return dense retrieval results.
 
@@ -34,7 +34,7 @@
 - Modify: `src/knowledgeqa/milvus/schema.py`
 - Modify: `tests/unit/test_milvus_schema.py`
 
-- [ ] **Step 1: Update the schema test to require auto_id**
+- [x] **Step 1: Update the schema test to require auto_id**
 
 Add:
 
@@ -42,7 +42,7 @@ Add:
 assert client.schema_kwargs["auto_id"] is True
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -52,7 +52,7 @@ Run:
 
 Expected: FAIL because `auto_id` is currently `False`.
 
-- [ ] **Step 3: Pin pymilvus to 2.5 and enable auto_id**
+- [x] **Step 3: Pin pymilvus to 2.5 and enable auto_id**
 
 In `pyproject.toml`, change:
 
@@ -66,7 +66,7 @@ In `src/knowledgeqa/milvus/schema.py`, change:
 schema = client.create_schema(auto_id=True, enable_dynamic_field=False)
 ```
 
-- [ ] **Step 4: Reinstall and run**
+- [x] **Step 4: Reinstall and run**
 
 Run:
 
@@ -89,7 +89,7 @@ Expected: 2 passed.
 - Create: `src/knowledgeqa/ingestion/chunking.py`
 - Test: `tests/unit/test_markdown_ingestion.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Test behavior:
 
@@ -113,7 +113,7 @@ def test_chunker_splits_long_markdown_and_preserves_section():
     assert chunks[-1].section == "# B"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_markdown_ingestion.py -v
@@ -121,7 +121,7 @@ def test_chunker_splits_long_markdown_and_preserves_section():
 
 Expected: import failures for `knowledgeqa.parsers.markdown`.
 
-- [ ] **Step 3: Implement minimal models, parser, and chunker**
+- [x] **Step 3: Implement minimal models, parser, and chunker**
 
 Interfaces:
 
@@ -150,7 +150,7 @@ def chunk_document(
 ) -> list[DocumentChunk]: ...
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_markdown_ingestion.py -v
@@ -167,7 +167,7 @@ Expected: 2 passed.
 - Create: `src/knowledgeqa/embedding.py`
 - Test: `tests/unit/test_embedding.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Use a fake backend:
 
@@ -183,7 +183,7 @@ def test_fastembed_embedder_uses_injected_backend():
     assert vectors == [[3.0, 1.0], [2.0, 1.0]]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_embedding.py -v
@@ -191,7 +191,7 @@ def test_fastembed_embedder_uses_injected_backend():
 
 Expected: `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement adapter**
+- [x] **Step 3: Implement adapter**
 
 Add dependency:
 
@@ -218,7 +218,7 @@ class FastEmbedEmbedder:
         return [vector.tolist() for vector in vectors]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
@@ -235,7 +235,7 @@ Expected: 1 passed.
 - Create: `src/knowledgeqa/repository.py`
 - Test: `tests/unit/test_repository.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -264,7 +264,7 @@ def test_upsert_document_and_replace_chunks(tmp_path):
     assert repo.list_documents(kb["id"])[0]["file_name"] == "a.md"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_repository.py -v
@@ -272,7 +272,7 @@ def test_upsert_document_and_replace_chunks(tmp_path):
 
 Expected: `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement repository**
+- [x] **Step 3: Implement repository**
 
 Methods:
 
@@ -290,7 +290,7 @@ class Repository:
 
 Use UUID4 strings for business IDs and UTC ISO timestamps.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_repository.py -v
@@ -306,7 +306,7 @@ Expected: 2 passed.
 - Create: `src/knowledgeqa/milvus/store.py`
 - Test: `tests/unit/test_milvus_store.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Cover:
 
@@ -315,7 +315,7 @@ Cover:
 - `insert_chunks` calls insert and returns primary keys.
 - `search` calls client.search with `COSINE` and returns dictionaries.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_milvus_store.py -v
@@ -323,7 +323,7 @@ Cover:
 
 Expected: `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement store**
+- [x] **Step 3: Implement store**
 
 Interface:
 
@@ -342,7 +342,7 @@ Search output fields:
 ["text", "document_id", "chunk_id", "page_no", "doc_type", "source_type"]
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_milvus_store.py -v
@@ -361,7 +361,7 @@ Expected: all tests pass.
 - Test: `tests/unit/test_ingestion_service.py`
 - Test: `tests/unit/test_search_service.py`
 
-- [ ] **Step 1: Write failing ingestion test**
+- [x] **Step 1: Write failing ingestion test**
 
 Use fake repository, embedder, and Milvus store. Assert:
 
@@ -369,7 +369,7 @@ Use fake repository, embedder, and Milvus store. Assert:
 - unchanged file is skipped;
 - return value counts inserted and skipped files.
 
-- [ ] **Step 2: Write failing search test**
+- [x] **Step 2: Write failing search test**
 
 Use fake repository, embedder, and Milvus store. Assert:
 
@@ -377,7 +377,7 @@ Use fake repository, embedder, and Milvus store. Assert:
 - Milvus search is called with the selected KB;
 - hits are returned unchanged.
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_ingestion_service.py tests/unit/test_search_service.py -v
@@ -385,7 +385,7 @@ Use fake repository, embedder, and Milvus store. Assert:
 
 Expected: import failures.
 
-- [ ] **Step 4: Implement services**
+- [x] **Step 4: Implement services**
 
 Interfaces:
 
@@ -398,7 +398,7 @@ class SearchService:
     def search(self, kb_id: str, query: str, limit: int = 5) -> list[dict]: ...
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/test_ingestion_service.py tests/unit/test_search_service.py -v
@@ -417,7 +417,7 @@ Expected: all tests pass.
 - Modify: `src/knowledgeqa/desktop.py`
 - Create: `tests/integration/test_kb_api.py`
 
-- [ ] **Step 1: Write failing API tests**
+- [x] **Step 1: Write failing API tests**
 
 Cover:
 
@@ -426,7 +426,7 @@ Cover:
 - `POST /api/v1/kbs/{id}/sync` calls the injected ingestion service.
 - `POST /api/v1/search` calls the injected search service.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/integration/test_kb_api.py -v
@@ -434,7 +434,7 @@ Cover:
 
 Expected: 404 for new endpoints.
 
-- [ ] **Step 3: Implement routers and app wiring**
+- [x] **Step 3: Implement routers and app wiring**
 
 Extend `create_app` with optional service parameters:
 
@@ -450,7 +450,7 @@ def create_app(
 
 Only include KB and search routers when the services are provided.
 
-- [ ] **Step 4: Wire desktop**
+- [x] **Step 4: Wire desktop**
 
 Desktop creates:
 
@@ -464,7 +464,7 @@ search_service = SearchService(repository, embedder, milvus_store)
 
 Pass them into `create_app`.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
