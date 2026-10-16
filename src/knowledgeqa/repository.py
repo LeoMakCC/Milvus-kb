@@ -493,3 +493,136 @@ class Repository:
                 (conversation_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def upsert_provider_config(
+        self,
+        name: str,
+        provider_type: str,
+        base_url: str | None = None,
+        model_name: str | None = None,
+        api_version: str | None = None,
+        encrypted_secret: bytes | None = None,
+        extra_headers_json: str | None = None,
+        enabled: bool = True,
+    ) -> dict:
+        existing = self.get_provider_config_by_name(name)
+        now = _utc_now()
+        if existing:
+            with connect(self._db_path) as conn:
+                conn.execute(
+                    """
+                    UPDATE provider_configs
+                    SET provider_type = ?, base_url = ?, model_name = ?,
+                        api_version = ?, encrypted_secret = ?,
+                        extra_headers_json = ?, enabled = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        provider_type,
+                        base_url,
+                        model_name,
+                        api_version,
+                        encrypted_secret,
+                        extra_headers_json,
+                        int(enabled),
+                        now,
+                        existing["id"],
+                    ),
+                )
+                conn.commit()
+            return self.get_provider_config(existing["id"])
+
+        provider_id = uuid4().hex
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO provider_configs(
+                    id, name, provider_type, base_url, model_name,
+                    api_version, encrypted_secret, extra_headers_json,
+                    enabled, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    provider_id,
+                    name,
+                    provider_type,
+                    base_url,
+                    model_name,
+                    api_version,
+                    encrypted_secret,
+                    extra_headers_json,
+                    int(enabled),
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        return self.get_provider_config(provider_id)
+
+    def list_provider_configs(self) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                "SELECT * FROM provider_configs ORDER BY created_at"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_provider_config(self, provider_id: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM provider_configs WHERE id = ?",
+                (provider_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def get_provider_config_by_name(self, name: str) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT * FROM provider_configs WHERE name = ?",
+                (name,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def set_active_provider(self, provider_id: str) -> None:
+        provider = self.get_provider_config(provider_id)
+        if provider is None:
+            raise ValueError(f"Provider not found: {provider_id}")
+        with connect(self._db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO app_settings(key, value, encrypted, updated_at)
+                VALUES ('active_provider', ?, 0, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+                """,
+                (provider_id, _utc_now()),
+            )
+            conn.commit()
+
+    def get_active_provider_config(self) -> dict | None:
+        with connect(self._db_path) as conn:
+            row = conn.execute(
+                "SELECT value FROM app_settings WHERE key = 'active_provider'"
+            ).fetchone()
+        if row:
+            provider = self.get_provider_config(row["value"])
+            if provider is not None:
+                return provider
+        with connect(self._db_path) as conn:
+            first = conn.execute(
+                """
+                SELECT * FROM provider_configs
+                WHERE enabled = 1
+                ORDER BY created_at
+                LIMIT 1
+                """
+            ).fetchone()
+        return dict(first) if first else None
+
+    def delete_provider_config(self, provider_id: str) -> None:
+        with connect(self._db_path) as conn:
+            conn.execute(
+                "DELETE FROM provider_configs WHERE id = ?",
+                (provider_id,),
+            )
+            conn.commit()

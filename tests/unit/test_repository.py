@@ -162,3 +162,26 @@ def test_conversation_and_messages(tmp_path: Path) -> None:
         for message in repo.list_messages(conversation["id"])
     ] == ["user", "assistant"]
     assert repo.get_conversation(conversation["id"])["model_name"] == "test-model"
+
+
+def test_provider_config_round_trip(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+
+    provider = repo.upsert_provider_config(
+        name="local",
+        provider_type="openai_compatible",
+        base_url="http://127.0.0.1:8899/v1",
+        model_name="mock",
+        encrypted_secret=b"secret",
+        enabled=True,
+    )
+    repo.set_active_provider(provider["id"])
+
+    assert repo.get_provider_config(provider["id"])["name"] == "local"
+    assert repo.get_provider_config_by_name("local")["model_name"] == "mock"
+    assert repo.list_provider_configs()[0]["id"] == provider["id"]
+    assert repo.get_active_provider_config()["id"] == provider["id"]
+
+    repo.delete_provider_config(provider["id"])
+    assert repo.get_provider_config(provider["id"]) is None
