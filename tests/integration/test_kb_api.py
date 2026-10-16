@@ -26,9 +26,12 @@ class FakeIngestionService:
     def __init__(self) -> None:
         self.calls = []
 
-    def sync_markdown(self, kb_id: str, directory):
+    def sync_documents(self, kb_id: str, directory):
         self.calls.append((kb_id, str(directory)))
         return SyncResult(scanned=2, inserted=1, skipped=1, failed=0)
+
+    def sync_markdown(self, kb_id: str, directory):
+        raise AssertionError("sync_markdown should not be called when sync_documents exists")
 
 
 class FakeSearchService:

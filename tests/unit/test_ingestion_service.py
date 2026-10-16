@@ -80,3 +80,23 @@ def test_sync_markdown_inserts_new_file_then_skips_unchanged(tmp_path: Path) -> 
     assert store.inserted[0][1][0]["page_no"] == -1
     assert store.inserted[0][1][0]["source_path"] == "a.md"
     assert repository.chunks["doc1"][0]["milvus_id"] == 1
+
+
+def test_sync_documents_ingests_supported_formats(tmp_path: Path) -> None:
+    (tmp_path / "a.md").write_text("# A\nMarkdown", encoding="utf-8")
+    (tmp_path / "b.txt").write_text("Plain text", encoding="utf-8")
+    repository = FakeRepository()
+    embedder = FakeEmbedder()
+    store = FakeMilvusStore()
+    service = IngestionService(repository, embedder, store)
+
+    result = service.sync_documents("kb1", tmp_path)
+
+    assert result.scanned == 2
+    assert result.inserted == 2
+    inserted_types = {
+        row["doc_type"]
+        for _, rows in store.inserted
+        for row in rows
+    }
+    assert inserted_types == {"markdown", "txt"}

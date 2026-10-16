@@ -6,7 +6,8 @@ from pathlib import Path
 
 from knowledgeqa.ingestion.chunking import chunk_document
 from knowledgeqa.ingestion.models import SyncResult
-from knowledgeqa.parsers.markdown import parse_markdown
+from knowledgeqa.parsers.base import OcrRequiredError
+from knowledgeqa.parsers.registry import parse_document, supported_extensions
 
 
 def _utc_now() -> str:
@@ -29,7 +30,18 @@ class IngestionService:
         self._overlap = overlap
         self._ensured_kbs: set[str] = set()
 
+    def sync_documents(self, kb_id: str, directory: Path) -> SyncResult:
+        return self._sync(kb_id, directory, supported_extensions())
+
     def sync_markdown(self, kb_id: str, directory: Path) -> SyncResult:
+        return self._sync(kb_id, directory, {".md", ".markdown"})
+
+    def _sync(
+        self,
+        kb_id: str,
+        directory: Path,
+        extensions: set[str],
+    ) -> SyncResult:
         kb = self._repository.get_knowledge_base(kb_id)
         if kb is None:
             raise ValueError(f"Knowledge base not found: {kb_id}")
@@ -41,11 +53,12 @@ class IngestionService:
             self._ensured_kbs.add(kb_id)
 
         scanned = inserted = skipped = failed = 0
-        for path in sorted(directory.rglob("*.md")):
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in extensions:
+                continue
             scanned += 1
             canonical_path = str(path.resolve())
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            source_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            source_hash = hashlib.sha256(path.read_bytes()).hexdigest()
             existing = self._repository.get_document_by_path(kb_id, canonical_path)
             if (
                 existing
@@ -56,7 +69,7 @@ class IngestionService:
                 continue
 
             try:
-                parsed = parse_markdown(path)
+                parsed = parse_document(path)
                 chunks = chunk_document(
                     parsed,
                     max_chars=self._max_chars,
@@ -67,7 +80,7 @@ class IngestionService:
                     kb_id=kb_id,
                     canonical_path=canonical_path,
                     file_name=path.name,
-                    doc_type="markdown",
+                    doc_type=parsed.doc_type,
                     source_type="local_file",
                     source_hash=source_hash,
                     size_bytes=stat.st_size,
@@ -86,8 +99,8 @@ class IngestionService:
                             "kb_id": kb_id,
                             "document_id": document["id"],
                             "chunk_id": f"{document['id']}:{chunk.chunk_index}",
-                            "page_no": -1,
-                            "doc_type": "markdown",
+                            "page_no": chunk.page_no,
+                            "doc_type": parsed.doc_type,
                             "source_type": "local_file",
                             "source_path": path.name,
                         }
@@ -108,6 +121,7 @@ class IngestionService:
                                 if index < len(milvus_ids)
                                 else None
                             ),
+                            "page_no": chunk.page_no,
                             "section_path": chunk.section,
                         }
                         for index, chunk in enumerate(chunks)
@@ -117,7 +131,7 @@ class IngestionService:
                     kb_id=kb_id,
                     canonical_path=canonical_path,
                     file_name=path.name,
-                    doc_type="markdown",
+                    doc_type=parsed.doc_type,
                     source_type="local_file",
                     source_hash=source_hash,
                     size_bytes=stat.st_size,
@@ -126,12 +140,24 @@ class IngestionService:
                     indexed_at=_utc_now(),
                 )
                 inserted += 1
+            except OcrRequiredError as exc:
+                self._repository.upsert_document(
+                    kb_id=kb_id,
+                    canonical_path=canonical_path,
+                    file_name=path.name,
+                    doc_type=path.suffix.lower().lstrip("."),
+                    source_type="local_file",
+                    source_hash=source_hash,
+                    index_status="needs_ocr",
+                    last_error=str(exc),
+                )
+                failed += 1
             except Exception as exc:
                 self._repository.upsert_document(
                     kb_id=kb_id,
                     canonical_path=canonical_path,
                     file_name=path.name,
-                    doc_type="markdown",
+                    doc_type=path.suffix.lower().lstrip("."),
                     source_type="local_file",
                     source_hash=source_hash,
                     index_status="failed",
