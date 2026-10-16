@@ -13,6 +13,7 @@ from knowledgeqa.api.routes.health import create_health_router
 from knowledgeqa.api.routes.kbs import create_kbs_router
 from knowledgeqa.api.routes.providers import create_providers_router
 from knowledgeqa.api.routes.search import create_search_router
+from knowledgeqa.api.routes.settings import create_settings_router
 from knowledgeqa.config import AppPaths, Settings
 
 
@@ -32,6 +33,7 @@ def create_app(
     app.include_router(create_health_router(status_provider))
     if repository is not None:
         app.include_router(create_kbs_router(repository, ingestion_service))
+        app.include_router(create_settings_router(repository, settings))
     if search_service is not None:
         app.include_router(create_search_router(search_service))
     if answer_service is not None and repository is not None:
