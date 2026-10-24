@@ -11,7 +11,7 @@ class HtmlParser:
     extensions = {".html", ".htm"}
 
     def parse(self, path: Path) -> ParsedDocument:
-        raw = path.read_text(encoding="utf-8", errors="ignore")
+        raw = path.read_text(encoding="utf-8-sig", errors="ignore")
         soup = BeautifulSoup(raw, "html.parser")
         text = soup.get_text("\n", strip=True)
         title_tag = soup.find("title")

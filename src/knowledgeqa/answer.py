@@ -7,6 +7,19 @@ from knowledgeqa.providers.base import ChatMessage, ChatRequest
 
 NO_ANSWER_TEXT = "知识库中没有找到足够依据。"
 
+DEFAULT_CONVERSATION_TITLE = "新会话"
+TITLE_MAX_CHARS = 24
+
+
+def conversation_title(query: str, limit: int = TITLE_MAX_CHARS) -> str:
+    """用首条提问生成会话标题，过长时截断并加省略号。"""
+    text = " ".join(query.split())
+    if not text:
+        return DEFAULT_CONVERSATION_TITLE
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "…"
+
 SYSTEM_PROMPT = (
     "你是知识库问答助手。只能根据提供的知识片段回答。"
     "每个关键结论后标注对应的片段编号，例如 [1]、[2]。"
@@ -64,14 +77,27 @@ class AnswerService:
         self._query_rewriter = query_rewriter
         self._provider_resolver = provider_resolver
 
-    def _conversation(self, kb_ids: list[str], conversation_id: str | None):
+    def _conversation(
+        self,
+        kb_ids: list[str],
+        conversation_id: str | None,
+        title: str | None = None,
+    ):
         if conversation_id:
             conversation = self._repository.get_conversation(conversation_id)
             if conversation is not None:
+                current = (conversation.get("title") or "").strip()
+                if title and current in ("", DEFAULT_CONVERSATION_TITLE):
+                    self._repository.update_conversation_title(
+                        conversation["id"],
+                        title,
+                    )
+                    conversation = {**conversation, "title": title}
                 return conversation
         return self._repository.create_conversation(
             kb_ids=kb_ids,
             model_name=self._model_name,
+            title=title,
         )
 
     def stream_answer(
@@ -81,7 +107,11 @@ class AnswerService:
         conversation_id: str | None = None,
     ) -> Iterator[dict]:
         yield {"type": "status", "message": "正在检索"}
-        conversation = self._conversation(kb_ids, conversation_id)
+        conversation = self._conversation(
+            kb_ids,
+            conversation_id,
+            title=conversation_title(query),
+        )
         history = self._repository.list_messages(conversation["id"])
         effective_query = query
         if history and self._query_rewriter is not None:
@@ -89,13 +119,17 @@ class AnswerService:
 
         hits: list[dict] = []
         for kb_id in kb_ids:
-            hits.extend(
-                self._search_service.search(
-                    kb_id,
-                    effective_query,
-                    limit=5,
+            try:
+                hits.extend(
+                    self._search_service.search(
+                        kb_id,
+                        effective_query,
+                        limit=5,
+                    )
                 )
-            )
+            except ValueError:
+                # 知识库已被删除时跳过，避免历史会话直接报错
+                continue
         hits = sorted(
             hits,
             key=lambda hit: float(hit.get("score") or 0),
@@ -119,13 +153,13 @@ class AnswerService:
             }
             return
 
+        parts: list[str] = []
         try:
             provider = self._provider
             model_name = self._model_name
             if self._provider_resolver is not None:
                 provider, model_name = self._provider_resolver()
             messages = build_messages(history, hits, query)
-            parts: list[str] = []
             for chunk in provider.stream_chat(
                 ChatRequest(messages=messages, model=model_name)
             ):
@@ -157,5 +191,17 @@ class AnswerService:
                 "conversation_id": conversation["id"],
                 "message_id": message["id"],
             }
-        except Exception as exc:
-            yield {"type": "error", "message": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            partial = "".join(parts)
+            if partial:
+                # 保留已生成的部分，避免用户看到的回答凭空消失
+                self._repository.add_message(
+                    conversation["id"],
+                    "assistant",
+                    partial,
+                    citations_json="[]",
+                )
+            yield {
+                "type": "error",
+                "message": f"模型服务调用失败：{exc}",
+            }

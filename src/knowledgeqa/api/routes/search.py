@@ -8,6 +8,7 @@ class SearchRequest(BaseModel):
     kb_id: str
     query: str
     limit: int = 5
+    expand_context: bool = True
 
 
 def create_search_router(search_service) -> APIRouter:
@@ -20,6 +21,7 @@ def create_search_router(search_service) -> APIRouter:
                 kb_id=request.kb_id,
                 query=request.query,
                 limit=request.limit,
+                expand_context=request.expand_context,
             )
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc

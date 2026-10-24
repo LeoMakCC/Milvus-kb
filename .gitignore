@@ -1,17 +1,56 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tooling caches
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
-build/*
+
+# Build output
+build/
 !build/pyinstaller/
 !build/pyinstaller/**
-dist/*
-*.egg-info/
+dist/
+dist_*/
+
+# Local runtime data (database, logs, backups, model cache)
 data/
 logs/
 backups/
+models/
+temp/
 *.db
 *.db-wal
 *.db-shm
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+*.secret
+
+# Archives and release artifacts
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Local launchers containing machine-specific paths
+start_kb_server.bat

@@ -44,6 +44,10 @@ def test_upsert_document_and_replace_chunks(tmp_path: Path) -> None:
     assert repo.list_documents(kb["id"])[0]["file_name"] == "a.md"
     assert repo.list_chunks(document["id"])[0]["chunk_hash"] == "chunk1"
 
+    stats = repo.list_documents_with_chunk_counts(kb["id"])
+    assert stats[0]["file_name"] == "a.md"
+    assert stats[0]["chunk_count"] == 1
+
     updated = repo.upsert_document(
         kb_id=kb["id"],
         canonical_path=str(tmp_path / "a.md"),
@@ -162,6 +166,76 @@ def test_conversation_and_messages(tmp_path: Path) -> None:
         for message in repo.list_messages(conversation["id"])
     ] == ["user", "assistant"]
     assert repo.get_conversation(conversation["id"])["model_name"] == "test-model"
+
+
+def test_delete_knowledge_base_removes_children(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+    kb = repo.create_knowledge_base(name="项目A", dimension=512)
+    document = repo.upsert_document(
+        kb_id=kb["id"],
+        canonical_path=str(tmp_path / "a.md"),
+        file_name="a.md",
+        doc_type="markdown",
+        source_type="local_file",
+        source_hash="hash1",
+        index_status="indexed",
+    )
+    repo.replace_chunks(
+        document["id"],
+        [
+            {
+                "chunk_index": 0,
+                "chunk_hash": "chunk1",
+                "milvus_id": 1,
+            }
+        ],
+    )
+
+    assert repo.delete_knowledge_base(kb["id"]) is True
+
+    assert repo.get_knowledge_base(kb["id"]) is None
+    assert repo.list_documents(kb["id"]) == []
+    assert repo.list_chunks(document["id"]) == []
+    assert repo.delete_knowledge_base(kb["id"]) is False
+
+
+def test_archive_filters_conversations(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+    first = repo.create_conversation(kb_ids=["kb1"], title="会话一")
+    second = repo.create_conversation(kb_ids=["kb1"], title="会话二")
+
+    assert len(repo.list_conversations()) == 2
+
+    archived = repo.set_conversation_archived(first["id"], True)
+
+    assert archived["archived_at"] is not None
+    assert [item["id"] for item in repo.list_conversations()] == [second["id"]]
+    assert [
+        item["id"] for item in repo.list_conversations(only_archived=True)
+    ] == [first["id"]]
+
+    restored = repo.set_conversation_archived(first["id"], False)
+
+    assert restored["archived_at"] is None
+    assert len(repo.list_conversations()) == 2
+    assert repo.set_conversation_archived("missing", True) is None
+
+
+def test_conversation_title_defaults_and_can_be_updated(tmp_path: Path) -> None:
+    repo = Repository(tmp_path / "meta.db")
+    repo.initialize()
+
+    titled = repo.create_conversation(kb_ids=["kb1"], title="付款条件是什么")
+    plain = repo.create_conversation(kb_ids=["kb1"])
+
+    assert titled["title"] == "付款条件是什么"
+    assert plain["title"] == "新会话"
+
+    repo.update_conversation_title(plain["id"], "改后的标题")
+
+    assert repo.get_conversation(plain["id"])["title"] == "改后的标题"
 
 
 def test_provider_config_round_trip(tmp_path: Path) -> None:

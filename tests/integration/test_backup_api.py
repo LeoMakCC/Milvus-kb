@@ -60,3 +60,43 @@ def test_backup_and_restore_api(portable_root) -> None:
     assert created.status_code == 200
     assert listed.json()[0]["name"] == created.json()["name"]
     assert restored.json()["restored"] is True
+
+
+def test_backup_can_target_custom_directory(portable_root) -> None:
+    data_dir = portable_root / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "metadata.db"
+    conn = connect(db_path)
+    try:
+        apply_migrations(conn)
+    finally:
+        conn.close()
+    backup = BackupService(
+        db_path=db_path,
+        data_dir=data_dir,
+        backup_dir=data_dir / "backups",
+        schema_version=2,
+    )
+    app = create_app(
+        settings=Settings(),
+        paths=AppPaths(portable_root=portable_root),
+        status_provider=lambda: {"milvus": "disconnected"},
+        backup_service=backup,
+        restore_service=RestoreService(data_dir, 2),
+    )
+    target = portable_root / "usb-backup"
+
+    created = asyncio.run(
+        request(
+            app,
+            "POST",
+            "/api/v1/backup",
+            json={"include_milvus": False, "target_dir": str(target)},
+        )
+    )
+    listed = asyncio.run(request(app, "GET", "/api/v1/backup"))
+
+    assert created.status_code == 200
+    assert created.json()["path"].startswith(str(target))
+    assert (target / created.json()["name"]).exists()
+    assert listed.json() == []

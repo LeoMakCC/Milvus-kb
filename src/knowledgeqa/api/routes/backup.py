@@ -12,6 +12,7 @@ class RestoreRequest(BaseModel):
 
 class BackupRequest(BaseModel):
     include_milvus: bool = True
+    target_dir: str | None = None
 
 
 def create_backup_router(backup_service, restore_service) -> APIRouter:
@@ -23,8 +24,13 @@ def create_backup_router(backup_service, restore_service) -> APIRouter:
             archive = backup_service.create_backup(
                 include_milvus=(
                     request.include_milvus if request is not None else True
-                )
+                ),
+                target_dir=(
+                    request.target_dir if request is not None else None
+                ),
             )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         except Exception as exc:
             raise HTTPException(500, str(exc)) from exc
         return {"name": archive.name, "path": str(archive)}

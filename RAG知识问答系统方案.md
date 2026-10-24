@@ -151,7 +151,7 @@ cd milvus-kb && docker compose up -d
 python kb_build.py --reset
 
 # 3. 命令行问答
-python kb_query.py "MediaCrawler 的整体架构"
+python kb_query.py "这个项目的整体架构"
 
 # 4. Web 服务
 export KB_LLM_BASE_URL=https://api.deepseek.com/v1

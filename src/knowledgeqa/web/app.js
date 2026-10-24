@@ -9,6 +9,7 @@ const state = {
   activeTab: "chat",
   abortController: null,
   streaming: false,
+  showArchived: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -83,16 +84,31 @@ function renderKnowledgeBases() {
     list.append(emptyNode("暂无知识库"));
   }
   for (const kb of state.kbs) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "kb-item" + (kb.id === state.selectedKbId ? " active" : "");
+    const item = document.createElement("div");
+    item.className =
+      "kb-item" + (kb.id === state.selectedKbId ? " active" : "");
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "kb-open";
     const icon = document.createElement("i");
     icon.dataset.lucide = "database";
     const label = document.createElement("span");
     label.textContent = kb.name;
-    button.append(icon, label);
-    button.addEventListener("click", () => selectKnowledgeBase(kb.id));
-    list.append(button);
+    open.append(icon, label);
+    open.addEventListener("click", () => selectKnowledgeBase(kb.id));
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "kb-delete";
+    remove.textContent = "×";
+    remove.title = "删除知识库";
+    remove.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteKnowledgeBase(kb);
+    });
+
+    item.append(open, remove);
+    list.append(item);
   }
   renderChatKbOptions();
   createIcons();
@@ -117,6 +133,7 @@ function selectKnowledgeBase(kbId) {
   $("kbMeta").textContent = kb ? `维度 ${kb.dimension}` : "";
   $("directoryInput").value = localStorage.getItem(directoryKey(kbId)) || "";
   renderKnowledgeBases();
+  loadDocuments();
 }
 
 async function loadKnowledgeBases() {
@@ -134,6 +151,7 @@ async function loadKnowledgeBases() {
     $("directoryInput").value = localStorage.getItem(directoryKey(kb.id)) || "";
   }
   renderKnowledgeBases();
+  loadDocuments();
 }
 
 async function createKnowledgeBase(event) {
@@ -159,10 +177,108 @@ async function createKnowledgeBase(event) {
   }
 }
 
+async function deleteKnowledgeBase(kb) {
+  const confirmed = window.confirm(
+    `删除知识库「${kb.name}」？其中的文档、分块和向量都会被删除，且无法恢复。`,
+  );
+  if (!confirmed) return;
+  try {
+    const result = await api(`/api/v1/kbs/${encodeURIComponent(kb.id)}`, {
+      method: "DELETE",
+    });
+    if (state.selectedKbId === kb.id) {
+      state.selectedKbId = null;
+    }
+    localStorage.removeItem(directoryKey(kb.id));
+    await loadKnowledgeBases();
+    $("syncResult").textContent = result.milvus_dropped
+      ? `已删除知识库「${kb.name}」及其向量集合`
+      : `已删除知识库「${kb.name}」，但向量集合未删除成功，请检查 Milvus`;
+  } catch (error) {
+    window.alert(`删除失败：${error.message}`);
+  }
+}
+
+async function browseDirectory() {
+  const start = $("directoryInput").value.trim();
+  const bridge = window.pywebview && window.pywebview.api;
+  if (!bridge || typeof bridge.select_directory !== "function") {
+    $("syncResult").textContent =
+      "当前环境无法打开目录选择框，请直接粘贴文件夹路径";
+    return;
+  }
+  try {
+    const selected = await bridge.select_directory(start);
+    if (selected) {
+      $("directoryInput").value = selected;
+    }
+  } catch (error) {
+    $("syncResult").textContent = `选择目录失败：${error.message || error}`;
+  }
+}
+
+async function addDocuments() {
+  const kb = selectedKb();
+  if (!kb) {
+    $("syncResult").textContent = "请先在左侧选择或新建知识库";
+    return;
+  }
+  const bridge = window.pywebview && window.pywebview.api;
+  if (!bridge || typeof bridge.select_files !== "function") {
+    $("syncResult").textContent =
+      "当前环境无法打开文件选择框，请改用「同步」并填写文件夹路径";
+    return;
+  }
+  let paths = [];
+  try {
+    paths = await bridge.select_files($("directoryInput").value.trim());
+  } catch (error) {
+    $("syncResult").textContent = `选择文件失败：${error.message || error}`;
+    return;
+  }
+  if (!paths || !paths.length) return;
+
+  const button = $("addFilesButton");
+  button.disabled = true;
+  $("syncResult").textContent = `正在入库 ${paths.length} 个文件...`;
+  try {
+    const result = await api(
+      `/api/v1/kbs/${encodeURIComponent(kb.id)}/documents`,
+      {
+        method: "POST",
+        body: JSON.stringify({ paths }),
+      },
+    );
+    let message =
+      `新增 ${result.inserted} | 跳过 ${result.skipped} | 失败 ${result.failed}`;
+    if (result.errors && result.errors.length) {
+      const details = result.errors
+        .slice(0, 3)
+        .map((item) => `${item.path}：${item.error}`)
+        .join("；");
+      message += ` | ${details}`;
+    }
+    $("syncResult").textContent = message;
+    await loadKnowledgeBases();
+  } catch (error) {
+    $("syncResult").textContent = `入库失败：${error.message}`;
+  } finally {
+    button.disabled = false;
+    loadDocuments();
+  }
+}
+
 async function syncKnowledgeBase() {
   const kb = selectedKb();
   const directory = $("directoryInput").value.trim();
-  if (!kb || !directory) return;
+  if (!kb) {
+    $("syncResult").textContent = "请先在左侧选择或新建知识库";
+    return;
+  }
+  if (!directory) {
+    $("syncResult").textContent = "请先选择或填写要同步的文档目录";
+    return;
+  }
   localStorage.setItem(directoryKey(kb.id), directory);
   const button = $("syncButton");
   button.disabled = true;
@@ -173,14 +289,106 @@ async function syncKnowledgeBase() {
       body: JSON.stringify({ directory }),
     });
     $("syncResult").textContent =
-      `扫描 ${result.scanned} | 入库 ${result.inserted} | 跳过 ${result.skipped}` +
+      `扫描 ${result.scanned} | 新增 ${result.inserted}` +
+      ` | 跳过(未变化) ${result.skipped}` +
       ` | 附件新增 ${result.attachments_inserted ?? 0}` +
       ` | 附件复用 ${result.attachments_reused ?? 0}` +
       ` | 失败 ${result.failed}`;
   } catch (error) {
-    $("syncResult").textContent = error.message;
+    $("syncResult").textContent = `同步失败：${error.message}`;
   } finally {
     button.disabled = false;
+    loadDocuments();
+  }
+}
+
+const DOC_STATUS_TEXT = {
+  indexed: "已入库",
+  indexing: "处理中",
+  needs_ocr: "需 OCR",
+  failed: "失败",
+  pending: "待处理",
+};
+
+function formatBytes(value) {
+  if (value === null || value === undefined) return "";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+async function loadDocuments() {
+  const kb = selectedKb();
+  const summaryBox = $("documentsSummary");
+  const list = $("documentsList");
+  if (!kb) {
+    summaryBox.textContent = "未选择知识库";
+    list.replaceChildren();
+    return;
+  }
+  try {
+    const result = await api(
+      `/api/v1/kbs/${encodeURIComponent(kb.id)}/documents`,
+    );
+    renderDocuments(result);
+  } catch (error) {
+    summaryBox.textContent = `读取文档列表失败：${error.message}`;
+  }
+}
+
+function renderDocuments(result) {
+  const summary = result.summary || {};
+  const entities =
+    summary.milvus_entities === null || summary.milvus_entities === undefined
+      ? "未知"
+      : summary.milvus_entities;
+  $("documentsSummary").textContent =
+    `文档 ${summary.documents ?? 0} 个（已入库 ${summary.indexed ?? 0}，` +
+    `失败 ${summary.failed ?? 0}）；分块 ${summary.chunks ?? 0}；` +
+    `向量库实体 ${entities}`;
+  const list = $("documentsList");
+  list.replaceChildren();
+  if (!result.documents.length) {
+    list.append(emptyNode("暂无文档，先同步目录或添加文件"));
+    return;
+  }
+  for (const doc of result.documents) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    const head = document.createElement("div");
+    head.className = "doc-head";
+    const name = document.createElement("span");
+    name.className = "doc-name";
+    name.textContent = doc.file_name;
+    name.title = doc.id;
+    const status = document.createElement("span");
+    status.className = `doc-status ${doc.index_status}`;
+    status.textContent = DOC_STATUS_TEXT[doc.index_status] || doc.index_status;
+    head.append(name, status);
+    const meta = document.createElement("div");
+    meta.className = "doc-meta";
+    meta.textContent = [
+      doc.doc_type,
+      `${doc.chunk_count} 块`,
+      formatBytes(doc.size_bytes),
+      doc.indexed_at ? `入库于 ${formatTime(doc.indexed_at)}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    row.append(head, meta);
+    if (doc.last_error) {
+      const error = document.createElement("div");
+      error.className = "doc-error";
+      error.textContent = doc.last_error;
+      row.append(error);
+    }
+    list.append(row);
   }
 }
 
@@ -191,25 +399,31 @@ function renderHits(hits) {
     container.append(emptyNode("未找到结果"));
     return;
   }
-  for (const hit of hits) {
+  hits.forEach((hit, index) => {
     const item = document.createElement("article");
     item.className = "result";
     const meta = document.createElement("div");
     meta.className = "result-meta";
     const score = document.createElement("span");
     score.className = "score";
-    score.textContent = Number(hit.score ?? 0).toFixed(4);
+    score.textContent =
+      `#${index + 1} 相关度 ${Number(hit.score ?? 0).toFixed(4)}`;
+    score.title = "混合检索（向量 + 关键词）融合分，仅用于排序比较";
     const source = document.createElement("span");
     source.className = "source";
     const page = Number(hit.page_no) > 0 ? ` · 第 ${hit.page_no} 页` : "";
-    source.textContent = `${hit.source_path || hit.document_id || "unknown"}${page}`;
+    const span = Array.isArray(hit.chunk_span)
+      ? ` · 片段 ${hit.chunk_span[0] + 1}–${hit.chunk_span[1] + 1}`
+      : "";
+    source.textContent =
+      `${hit.source_path || hit.document_id || "unknown"}${page}${span}`;
     meta.append(score, source);
     const text = document.createElement("div");
     text.className = "result-text";
     text.textContent = hit.text || "";
     item.append(meta, text);
     container.append(item);
-  }
+  });
 }
 
 async function doSearch() {
@@ -279,7 +493,12 @@ function renderMessages() {
       message.role === "user" ? "你" : message.status || "KnowledgeQA";
     const content = document.createElement("div");
     content.className = "message-content";
-    content.textContent = message.error || message.content || "…";
+    const body = message.content || "";
+    if (message.error && body) {
+      content.textContent = `${body}\n\n[回答未完成] ${message.error}`;
+    } else {
+      content.textContent = message.error || body || "…";
+    }
     item.append(meta, content);
 
     if (message.citations.length) {
@@ -312,31 +531,74 @@ function renderMessages() {
 }
 
 async function loadConversations() {
-  state.conversations = await api("/api/v1/conversations");
+  const query = state.showArchived ? "?archived=true" : "";
+  state.conversations = await api(`/api/v1/conversations${query}`);
   renderConversations();
 }
 
 function renderConversations() {
   const list = $("conversationList");
   list.replaceChildren();
+  $("toggleArchivedButton").textContent = state.showArchived
+    ? "返回会话列表"
+    : "查看已归档";
   if (!state.conversations.length) {
-    list.append(emptyNode("暂无会话"));
+    list.append(
+      emptyNode(state.showArchived ? "暂无已归档会话" : "暂无会话"),
+    );
   }
   for (const conversation of state.conversations) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className =
+    const item = document.createElement("div");
+    item.className =
       "conversation-item" +
       (conversation.id === state.currentConversationId ? " active" : "");
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "conversation-open";
     const icon = document.createElement("i");
     icon.dataset.lucide = "message-square";
     const label = document.createElement("span");
     label.textContent = conversation.title || "新会话";
-    button.append(icon, label);
-    button.addEventListener("click", () => selectConversation(conversation.id));
-    list.append(button);
+    open.append(icon, label);
+    open.addEventListener("click", () => selectConversation(conversation.id));
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "conversation-archive";
+    action.textContent = state.showArchived ? "恢复" : "归档";
+    action.title = state.showArchived
+      ? "恢复到会话列表"
+      : "归档后不在会话列表中显示";
+    action.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleConversationArchive(conversation);
+    });
+
+    item.append(open, action);
+    list.append(item);
   }
   createIcons();
+}
+
+async function toggleConversationArchive(conversation) {
+  const action = state.showArchived ? "unarchive" : "archive";
+  try {
+    await api(
+      `/api/v1/conversations/${encodeURIComponent(conversation.id)}/${action}`,
+      { method: "POST" },
+    );
+    if (!state.showArchived && state.currentConversationId === conversation.id) {
+      newConversation();
+    }
+    await loadConversations();
+  } catch (error) {
+    window.alert(`操作失败：${error.message}`);
+  }
+}
+
+function toggleArchivedView() {
+  state.showArchived = !state.showArchived;
+  loadConversations();
 }
 
 function newConversation() {
@@ -393,10 +655,14 @@ function parseSseFrame(frame) {
     }
   }
   if (!dataLines.length) return null;
-  return {
-    type: eventType,
-    data: JSON.parse(dataLines.join("\n")),
-  };
+  try {
+    return {
+      type: eventType,
+      data: JSON.parse(dataLines.join("\n")),
+    };
+  } catch (error) {
+    return null;
+  }
 }
 
 async function sendChat() {
@@ -460,6 +726,7 @@ async function sendChat() {
     state.abortController = null;
     $("sendButton").disabled = false;
     $("stopButton").classList.add("hidden");
+    loadConversations().catch(() => {});
   }
 }
 
@@ -490,6 +757,12 @@ function renderProviders() {
     const name = document.createElement("span");
     name.textContent = provider.name;
     title.append(icon, name);
+    if (provider.active) {
+      const badge = document.createElement("span");
+      badge.className = "provider-badge";
+      badge.textContent = "默认";
+      title.append(badge);
+    }
     const meta = document.createElement("div");
     meta.className = "provider-meta";
     meta.textContent = `${provider.provider_type} · ${provider.model_name || ""}`;
@@ -501,8 +774,13 @@ function renderProviders() {
     edit.addEventListener("click", () => fillProviderForm(provider));
     const activate = document.createElement("button");
     activate.type = "button";
-    activate.textContent = "激活";
-    activate.addEventListener("click", () => activateProvider(provider.id));
+    activate.textContent = provider.active ? "已激活" : "设为默认";
+    activate.title = "知识库问答使用该模型服务";
+    if (provider.active) {
+      activate.disabled = true;
+    } else {
+      activate.addEventListener("click", () => activateProvider(provider));
+    }
     const test = document.createElement("button");
     test.type = "button";
     test.textContent = "测试";
@@ -560,21 +838,74 @@ async function saveProvider(event) {
   await loadProviders();
 }
 
-async function activateProvider(providerId) {
-  await api(`/api/v1/providers/${encodeURIComponent(providerId)}/activate`, {
-    method: "POST",
-  });
-  await loadProviders();
+async function activateProvider(provider) {
+  const resultBox = $("providerTestResult");
+  try {
+    await api(
+      `/api/v1/providers/${encodeURIComponent(provider.id)}/activate`,
+      { method: "POST" },
+    );
+    await loadProviders();
+    resultBox.textContent =
+      `已将「${provider.name}」设为默认，知识库问答将使用该服务`;
+  } catch (error) {
+    resultBox.textContent = `激活失败：${error.message}`;
+  }
+}
+
+function providerTestPayload() {
+  const payload = {
+    provider_id: $("providerId").value.trim() || null,
+    provider_type: $("providerType").value,
+    base_url: $("providerBaseUrl").value.trim(),
+    model_name: $("providerModel").value.trim(),
+    api_version: $("providerApiVersion").value.trim() || null,
+  };
+  const apiKey = $("providerApiKey").value.trim();
+  if (apiKey) payload.api_key = apiKey;
+  return payload;
+}
+
+function describeProviderTest(result) {
+  const meta = [];
+  if (result.model) meta.push(`模型 ${result.model}`);
+  if (result.latency_ms) meta.push(`${result.latency_ms} ms`);
+  const suffix = meta.length ? `（${meta.join("，")}）` : "";
+  return result.ok
+    ? `连接正常${suffix}`
+    : `连接失败${suffix}：${result.message || "未知错误"}`;
+}
+
+async function testProviderForm() {
+  const button = $("testProviderButton");
+  const resultBox = $("providerTestResult");
+  button.disabled = true;
+  resultBox.textContent = "测试中...";
+  try {
+    const result = await api("/api/v1/providers/test", {
+      method: "POST",
+      body: JSON.stringify(providerTestPayload()),
+    });
+    resultBox.textContent = describeProviderTest(result);
+  } catch (error) {
+    resultBox.textContent = `测试失败：${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function testProvider(providerId) {
-  const result = await api(
-    `/api/v1/providers/${encodeURIComponent(providerId)}/test`,
-    { method: "POST" },
-  );
-  $("providerTestResult").textContent = result.ok
-    ? "连接正常"
-    : `连接失败: ${result.message}`;
+  const resultBox = $("providerTestResult");
+  resultBox.textContent = "测试中...";
+  try {
+    const result = await api(
+      `/api/v1/providers/${encodeURIComponent(providerId)}/test`,
+      { method: "POST" },
+    );
+    resultBox.textContent = describeProviderTest(result);
+  } catch (error) {
+    resultBox.textContent = `测试失败：${error.message}`;
+  }
 }
 
 async function deleteProvider(providerId) {
@@ -591,6 +922,10 @@ async function deleteProvider(providerId) {
 async function loadSettings() {
   const settings = await api("/api/v1/settings");
   $("lanEnabled").checked = Boolean(settings.lan_enabled);
+  const savedBackupDir = localStorage.getItem("knowledgeqa:backupDir");
+  if (savedBackupDir && !$("backupDirInput").value) {
+    $("backupDirInput").value = savedBackupDir;
+  }
   $("settingsResult").textContent = settings.restart_required
     ? `已保存。访问地址：${settings.access_url}，重启应用后生效。`
     : `访问地址：${settings.access_url}`;
@@ -616,19 +951,76 @@ async function saveSettings(event) {
 
 async function loadBackups() {
   const backups = await api("/api/v1/backup");
-  $("backupStatus").textContent = backups.length
-    ? `最近备份：${backups[0].name}`
-    : "暂无备份";
+  const box = $("backupStatus");
+  if (!backups.length) {
+    box.textContent = "暂无备份";
+    box.title = "";
+    return;
+  }
+  const latest = backups[0];
+  box.textContent = `最近备份：${latest.name}（${latest.path}）`;
+  box.title = latest.path;
+}
+
+async function browseBackupFile() {
+  const bridge = window.pywebview && window.pywebview.api;
+  if (!bridge || typeof bridge.select_backup_file !== "function") {
+    $("backupStatus").textContent =
+      "当前环境无法打开文件选择框，请直接粘贴备份文件路径";
+    return;
+  }
+  try {
+    const selected = await bridge.select_backup_file(
+      $("restorePath").value.trim(),
+    );
+    if (selected) {
+      $("restorePath").value = selected;
+      $("backupStatus").textContent = `待恢复的备份文件：${selected}`;
+      $("backupStatus").title = selected;
+    }
+  } catch (error) {
+    $("backupStatus").textContent = `选择文件失败：${error.message}`;
+  }
+}
+
+async function browseBackupDir() {
+  const bridge = window.pywebview && window.pywebview.api;
+  if (!bridge || typeof bridge.select_directory !== "function") {
+    $("backupStatus").textContent =
+      "当前环境无法打开目录选择框，请直接粘贴保存位置";
+    return;
+  }
+  try {
+    const selected = await bridge.select_directory(
+      $("backupDirInput").value.trim(),
+    );
+    if (selected) {
+      $("backupDirInput").value = selected;
+      localStorage.setItem("knowledgeqa:backupDir", selected);
+      $("backupStatus").textContent = `备份将保存到：${selected}`;
+      $("backupStatus").title = selected;
+    }
+  } catch (error) {
+    $("backupStatus").textContent = `选择目录失败：${error.message}`;
+  }
 }
 
 async function createBackup() {
+  const targetDir = $("backupDirInput").value.trim();
   $("backupStatus").textContent = "备份中...";
   try {
-    const result = await api("/api/v1/backup", { method: "POST" });
-    $("backupStatus").textContent = `已创建：${result.path}`;
+    const result = await api("/api/v1/backup", {
+      method: "POST",
+      body: JSON.stringify({
+        include_milvus: true,
+        target_dir: targetDir || null,
+      }),
+    });
+    $("backupStatus").textContent = `已创建备份：${result.path}`;
+    $("backupStatus").title = result.path;
     $("restorePath").value = result.path;
   } catch (error) {
-    $("backupStatus").textContent = error.message;
+    $("backupStatus").textContent = `备份失败：${error.message}`;
   }
 }
 
@@ -643,8 +1035,9 @@ async function restoreBackup() {
       body: JSON.stringify({ path }),
     });
     $("backupStatus").textContent = result.safety_backup
-      ? `恢复完成，安全备份：${result.safety_backup}`
+      ? `恢复完成，已生成安全副本：${result.safety_backup}`
       : "恢复完成";
+    $("backupStatus").title = result.safety_backup || "";
   } catch (error) {
     $("backupStatus").textContent = error.message;
   }
@@ -731,6 +1124,9 @@ function switchTab(tab) {
     tabs[name].classList.toggle("active", name === tab);
   }
   $("conversationSidebar").classList.toggle("hidden", tab !== "chat");
+  if (tab === "kb") {
+    loadDocuments();
+  }
 }
 
 function bindEvents() {
@@ -739,6 +1135,9 @@ function bindEvents() {
     $("kbNameInput").focus();
   });
   $("kbForm").addEventListener("submit", createKnowledgeBase);
+  $("browseDirectoryButton").addEventListener("click", browseDirectory);
+  $("addFilesButton").addEventListener("click", addDocuments);
+  $("refreshDocumentsButton").addEventListener("click", loadDocuments);
   $("syncButton").addEventListener("click", syncKnowledgeBase);
   $("searchButton").addEventListener("click", doSearch);
   $("searchInput").addEventListener("keydown", (event) => {
@@ -750,6 +1149,7 @@ function bindEvents() {
   $("tabModels").addEventListener("click", () => switchTab("models"));
   $("tabSettings").addEventListener("click", () => switchTab("settings"));
   $("newConversationButton").addEventListener("click", newConversation);
+  $("toggleArchivedButton").addEventListener("click", toggleArchivedView);
   $("clearChatButton").addEventListener("click", newConversation);
   $("sendButton").addEventListener("click", sendChat);
   $("stopButton").addEventListener("click", stopChat);
@@ -761,12 +1161,12 @@ function bindEvents() {
   });
   $("newProviderButton").addEventListener("click", resetProviderForm);
   $("providerForm").addEventListener("submit", saveProvider);
-  $("testProviderButton").addEventListener("click", () => {
-    if (state.providerId) testProvider(state.providerId);
-  });
+  $("testProviderButton").addEventListener("click", testProviderForm);
   $("settingsForm").addEventListener("submit", saveSettings);
   $("loginForm").addEventListener("submit", submitLogin);
   $("createBackupButton").addEventListener("click", createBackup);
+  $("chooseBackupDirButton").addEventListener("click", browseBackupDir);
+  $("browseBackupButton").addEventListener("click", browseBackupFile);
   $("restoreBackupButton").addEventListener("click", restoreBackup);
   $("startMilvusButton").addEventListener("click", startMilvus);
   $("stopMilvusButton").addEventListener("click", stopMilvus);

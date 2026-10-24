@@ -7,9 +7,9 @@
   PORT=9000 python kb_server.py
 
 可选 LLM 问答 (OpenAI 兼容接口):
-  set KB_LLM_BASE_URL=https://api.deepseek.com/v1
-  set KB_LLM_API_KEY=sk-xxx
-  set KB_LLM_MODEL=deepseek-chat
+  set KB_LLM_BASE_URL=https://api.example.com/v1
+  set KB_LLM_API_KEY=your-api-key
+  set KB_LLM_MODEL=your-model
 """
 import os
 import sys
@@ -34,7 +34,7 @@ import hashlib  # noqa: E402
 from pymilvus import MilvusClient  # noqa: E402
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DOC_DIR = os.path.dirname(BASE_DIR)  # 默认工作区根目录
+DEFAULT_DOC_DIR = os.environ.get("KB_DOC_DIR", BASE_DIR)
 
 app = FastAPI(title="个人向量知识库")
 
@@ -170,6 +170,16 @@ class BuildReq(BaseModel):
 @app.get("/")
 def index():
     return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
+
+
+@app.get("/api/v1/health")
+def v1_health():
+    return {"status": "ok"}
+
+
+@app.get("/api/v1/status")
+def v1_status():
+    return {"status": "ok"}
 
 
 @app.get("/api/status")

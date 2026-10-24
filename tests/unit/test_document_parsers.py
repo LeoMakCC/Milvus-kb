@@ -16,6 +16,16 @@ def test_plain_text_parser_reads_python_file(tmp_path: Path) -> None:
     assert "def hello" in document.text
 
 
+def test_markdown_parser_ignores_utf8_bom(tmp_path: Path) -> None:
+    path = tmp_path / "bom.md"
+    path.write_text("# 付款条件\n验收后30日内付款", encoding="utf-8-sig")
+
+    document = parse_document(path)
+
+    assert document.title == "付款条件"
+    assert not document.text.startswith("\ufeff")
+
+
 def test_html_parser_strips_markup(tmp_path: Path) -> None:
     path = tmp_path / "page.html"
     path.write_text(

@@ -84,6 +84,14 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
         def is_running(self) -> bool:
             return False
 
+    class FakeMilvusStore:
+        def __init__(self, uri: str) -> None:
+            self.uri = uri
+
+        def is_available(self) -> bool:
+            return False
+
+    monkeypatch.setattr(desktop, "MilvusStore", FakeMilvusStore)
     captured_apps = []
 
     assert desktop.main(docker_controller=FakeDockerController()) == 0
@@ -104,8 +112,58 @@ def test_main_starts_window_and_stops_server(monkeypatch, tmp_path) -> None:
             return await client.get("/api/v1/status")
 
     status = asyncio.run(fetch_status()).json()
-    assert status["db_schema_version"] == 2
+    assert status["db_schema_version"] == 4
     assert status["docker_available"] is False
+    assert status["milvus"] == "disconnected"
+
+
+def test_desktop_api_forwards_selected_folder(monkeypatch) -> None:
+    calls: list[tuple[str, str]] = []
+
+    def fake_select_folder(title: str = "", initial: str = "") -> str:
+        calls.append((title, initial))
+        return "D:\\docs"
+
+    monkeypatch.setattr(desktop, "select_folder", fake_select_folder)
+
+    assert desktop.DesktopApi().select_directory("D:\\start") == "D:\\docs"
+    assert calls == [("选择文档目录", "D:\\start")]
+
+
+def test_desktop_api_selects_backup_file(monkeypatch) -> None:
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_pick_files(title: str = "", initial: str = "", file_filter: str = ""):
+        calls.append((title, initial, file_filter))
+        return ["D:\\backups\\demo.zip"]
+
+    monkeypatch.setattr(desktop, "pick_files", fake_pick_files)
+
+    selected = desktop.DesktopApi().select_backup_file("D:\\backups")
+
+    assert selected == "D:\\backups\\demo.zip"
+    assert calls[0][0] == "选择备份文件"
+    assert calls[0][1] == "D:\\backups"
+    assert "*.zip" in calls[0][2]
+
+
+def test_cached_probe_reuses_value_within_ttl() -> None:
+    now = [0.0]
+    hits: list[int] = []
+
+    def probe() -> bool:
+        hits.append(1)
+        return True
+
+    cached = desktop.cached_probe(probe, ttl=10.0, clock=lambda: now[0])
+
+    assert cached() is True
+    assert cached() is True
+    assert len(hits) == 1
+
+    now[0] = 11.0
+    assert cached() is True
+    assert len(hits) == 2
 
 
 def test_request_exit_destroys_window_when_no_jobs() -> None:

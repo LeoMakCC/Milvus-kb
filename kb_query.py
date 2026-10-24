@@ -3,7 +3,7 @@
 个人向量知识库 - 检索问答脚本
 
 用法:
-  python kb_query.py "MediaCrawler 的整体架构是怎样的"
+  python kb_query.py "这个项目的整体架构是怎样的"
   python kb_query.py            # 进入交互模式
 """
 import argparse
@@ -18,16 +18,16 @@ os.environ.setdefault("no_proxy", "localhost,127.0.0.1")
 from pymilvus import MilvusClient
 from fastembed import TextEmbedding
 
-MILVUS_URI = "http://localhost:19530"
-COLLECTION = "personal_kb"
+MILVUS_URI = os.environ.get("KB_MILVUS_URI", "http://localhost:19530")
+COLLECTION = os.environ.get("KB_COLLECTION", "personal_kb")
 EMBED_MODEL = "BAAI/bge-small-zh-v1.5"
 TOP_K = 5
 
 # 可选: 配置 OpenAI 兼容 LLM 后自动生成回答 (留空则只做检索)
-# 支持任意 OpenAI 兼容接口, 例如 DeepSeek / 智谱 / Ollama
-LLM_BASE_URL = os.environ.get("KB_LLM_BASE_URL", "")   # 如 https://api.deepseek.com/v1
+# 支持任意 OpenAI 兼容接口, 例如本地 Ollama 或云服务
+LLM_BASE_URL = os.environ.get("KB_LLM_BASE_URL", "")   # 如 https://api.example.com/v1
 LLM_API_KEY = os.environ.get("KB_LLM_API_KEY", "")
-LLM_MODEL = os.environ.get("KB_LLM_MODEL", "deepseek-chat")
+LLM_MODEL = os.environ.get("KB_LLM_MODEL", "")
 
 
 def search(client: MilvusClient, model: TextEmbedding, query: str, k: int = TOP_K):

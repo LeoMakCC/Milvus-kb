@@ -93,18 +93,52 @@ svg { width: 16px; height: 16px; stroke-width: 1.8; }
 .kb-item, .conversation-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   width: 100%;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--text);
-  padding: 8px 9px;
   text-align: left;
 }
 .kb-item:hover, .conversation-item:hover { background: var(--surface-muted); }
 .kb-item.active, .conversation-item.active { color: var(--accent); border-color: #bfdbfe; background: var(--accent-soft); }
-.kb-item span, .conversation-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-open, .conversation-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 8px 9px;
+  text-align: left;
+}
+.kb-open span, .conversation-open span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-delete, .conversation-archive {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 12px;
+  visibility: hidden;
+}
+.kb-delete { font-size: 16px; line-height: 1; }
+.kb-item:hover .kb-delete, .conversation-item:hover .conversation-archive { visibility: visible; }
+.kb-delete:hover { color: #b91c1c; }
+.conversation-archive:hover { color: var(--accent); }
+.text-button {
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 4px 2px;
+  text-align: left;
+}
+.text-button:hover { color: var(--accent); }
 
 .kb-form { display: grid; gap: 7px; margin-top: 8px; }
 .kb-form input, .provider-form input, .provider-form select {
@@ -254,6 +288,21 @@ svg { width: 16px; height: 16px; stroke-width: 1.8; }
 .kb-head h1 { font-size: 18px; margin: 0 0 4px; }
 .kb-head p { margin: 0; font-size: 12px; }
 .sync-result { min-height: 24px; margin-top: 12px; line-height: 1.6; }
+.kb-hint { margin: 0; font-size: 12px; line-height: 1.6; }
+.results-hint { margin: 0 0 10px; font-size: 12px; line-height: 1.6; }
+
+.kb-docs { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 14px; }
+.kb-docs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 650; }
+.doc-list { display: grid; gap: 6px; margin-top: 8px; max-height: 320px; overflow: auto; }
+.doc-row { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; background: var(--surface); }
+.doc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.doc-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-status { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: #eef2f7; color: var(--muted); white-space: nowrap; }
+.doc-status.indexed { background: #dcfce7; color: #15803d; }
+.doc-status.failed { background: #fee2e2; color: #b91c1c; }
+.doc-status.needs_ocr { background: #fef3c7; color: #b45309; }
+.doc-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.doc-error { color: #b91c1c; font-size: 12px; margin-top: 4px; word-break: break-word; }
 
 .models-layout {
   display: grid;
@@ -275,6 +324,17 @@ svg { width: 16px; height: 16px; stroke-width: 1.8; }
 .provider-actions { display: flex; gap: 6px; margin-top: 8px; }
 .provider-actions button { border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--muted); padding: 4px 7px; }
 .provider-actions button:hover { color: var(--accent); border-color: #bfdbfe; }
+.provider-actions button:disabled { opacity: 0.6; cursor: default; color: var(--muted); border-color: var(--border); }
+.provider-badge {
+  margin-left: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.provider-hint { margin: 10px 0 0; font-size: 12px; line-height: 1.6; }
 
 .provider-form { display: grid; gap: 10px; max-width: 620px; }
 .provider-form label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
@@ -287,6 +347,8 @@ svg { width: 16px; height: 16px; stroke-width: 1.8; }
 .provider-form .checkbox-row input { width: auto; }
 .form-actions { display: flex; gap: 8px; margin-top: 4px; }
 .backup-block { margin-top: 24px; max-width: 620px; }
+.backup-group { display: grid; gap: 8px; margin-top: 14px; }
+.backup-group-title { font-size: 12px; font-weight: 650; color: var(--muted); }
 .full-input {
   width: 100%;
   border: 1px solid var(--border);

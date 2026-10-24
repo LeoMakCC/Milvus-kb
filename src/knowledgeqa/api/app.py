@@ -33,11 +33,14 @@ def create_app(
     backup_service=None,
     restore_service=None,
     docker_controller=None,
+    milvus_store=None,
 ) -> FastAPI:
     app = FastAPI(title="KnowledgeQA", version="0.1.0")
     app.include_router(create_health_router(status_provider))
     if repository is not None:
-        app.include_router(create_kbs_router(repository, ingestion_service))
+        app.include_router(
+            create_kbs_router(repository, ingestion_service, milvus_store)
+        )
         app.include_router(create_settings_router(repository, settings))
     if search_service is not None:
         app.include_router(create_search_router(search_service))

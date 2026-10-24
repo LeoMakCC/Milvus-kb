@@ -91,6 +91,16 @@ def test_ensure_collection_creates_missing_collection(monkeypatch) -> None:
     assert created == [("abc", 512)]
 
 
+def test_search_returns_empty_when_collection_missing() -> None:
+    client = FakeMilvusClient()
+    client.collections.clear()
+    store = MilvusStore("http://localhost:19530", client=client)
+
+    assert store.search("abc", [0.1, 0.2], limit=3) == []
+    assert store.hybrid_search("abc", [0.1], "合同", limit=3) == []
+    assert not any(call[0] == "load_collection" for call in client.calls)
+
+
 def test_delete_document_uses_document_filter() -> None:
     client = FakeMilvusClient()
     store = MilvusStore("http://localhost:19530", client=client)

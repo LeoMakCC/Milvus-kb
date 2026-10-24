@@ -672,8 +672,8 @@ cancelled
 {
   "name": "deepseek",
   "provider_type": "openai_compatible",
-  "base_url": "https://api.deepseek.com/v1",
-  "model_name": "deepseek-chat",
+  "base_url": "https://api.example.com/v1",
+  "model_name": "example-chat",
   "api_key": "encrypted",
   "headers": {},
   "enabled": true

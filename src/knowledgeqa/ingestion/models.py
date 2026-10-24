@@ -34,3 +34,12 @@ class SyncResult:
     failed: int
     attachments_inserted: int = 0
     attachments_reused: int = 0
+
+
+@dataclass(frozen=True)
+class FileSyncResult:
+    scanned: int
+    inserted: int
+    skipped: int
+    failed: int
+    errors: list[dict] = field(default_factory=list)

@@ -10,6 +10,8 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from knowledgeqa.process_utils import hidden_window_kwargs
+
 APP_VERSION = "0.1.0"
 EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
 
@@ -43,8 +45,24 @@ class BackupService:
         self._docker_runner = docker_runner
         self._milvus_volume = milvus_volume
 
-    def create_backup(self, include_milvus: bool = True) -> Path:
+    def create_backup(
+        self,
+        include_milvus: bool = True,
+        target_dir: Path | str | None = None,
+    ) -> Path:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+        output_dir = (
+            Path(target_dir).expanduser()
+            if target_dir
+            else self._backup_dir
+        )
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise ValueError(f"无法写入备份目录: {output_dir}") from exc
+        if not output_dir.is_dir():
+            raise ValueError(f"备份目录不可用: {output_dir}")
+
         self._backup_dir.mkdir(parents=True, exist_ok=True)
         work_dir = self._backup_dir / f"backup-{stamp}"
         work_dir.mkdir(parents=True, exist_ok=False)
@@ -77,7 +95,7 @@ class BackupService:
             encoding="utf-8",
         )
 
-        archive = self._backup_dir / f"knowledgeqa-backup-{stamp}.zip"
+        archive = output_dir / f"knowledgeqa-backup-{stamp}.zip"
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
             for path in sorted(work_dir.iterdir()):
                 if path.is_file():
@@ -106,6 +124,7 @@ class BackupService:
             capture_output=True,
             text=True,
             timeout=600,
+            **hidden_window_kwargs(),
         )
         if result.returncode == 0 and archive.exists():
             return True

@@ -39,6 +39,25 @@ def test_create_backup_contains_manifest_and_database(tmp_path: Path) -> None:
     assert "metadata.db" in manifest["files"]
 
 
+def test_create_backup_writes_to_custom_directory(tmp_path: Path) -> None:
+    db_path = tmp_path / "data" / "metadata.db"
+    db_path.parent.mkdir()
+    make_db(db_path)
+    target = tmp_path / "external"
+    service = BackupService(
+        db_path=db_path,
+        data_dir=db_path.parent,
+        backup_dir=tmp_path / "backups",
+        schema_version=2,
+    )
+
+    archive = service.create_backup(include_milvus=False, target_dir=target)
+
+    assert archive.parent == target
+    assert archive.exists()
+    assert service.list_backups() == []
+
+
 def test_milvus_backup_hook_records_success(tmp_path: Path) -> None:
     db_path = tmp_path / "data" / "metadata.db"
     db_path.parent.mkdir()
@@ -46,7 +65,7 @@ def test_milvus_backup_hook_records_success(tmp_path: Path) -> None:
 
     calls = []
 
-    def runner(args, capture_output, text, timeout):
+    def runner(args, capture_output, text, timeout, **kwargs):
         calls.append(args)
         return CompletedProcess(args, 0, stdout="", stderr="")
 

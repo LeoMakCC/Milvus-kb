@@ -7,8 +7,31 @@ from knowledgeqa.config import AppPaths, Settings
 
 
 class FakeRepository:
-    def list_conversations(self):
-        return [{"id": "conv1", "title": "新会话"}]
+    def __init__(self) -> None:
+        self.archived: dict[str, bool] = {}
+
+    def list_conversations(self, only_archived: bool = False):
+        if only_archived:
+            return (
+                [{"id": "conv1", "title": "已归档"}]
+                if self.archived.get("conv1")
+                else []
+            )
+        return (
+            []
+            if self.archived.get("conv1")
+            else [{"id": "conv1", "title": "新会话"}]
+        )
+
+    def set_conversation_archived(
+        self,
+        conversation_id: str,
+        archived: bool,
+    ):
+        if conversation_id != "conv1":
+            return None
+        self.archived[conversation_id] = archived
+        return {"id": conversation_id}
 
     def get_conversation(self, conversation_id: str):
         if conversation_id == "conv1":
@@ -90,3 +113,46 @@ def test_conversation_endpoints(portable_root) -> None:
     assert listed.json()[0]["id"] == "conv1"
     assert detail.json()["conversation"]["id"] == "conv1"
     assert detail.json()["messages"][0]["content"] == "问题"
+
+
+def test_archive_and_unarchive_conversation(portable_root) -> None:
+    repository = FakeRepository()
+    app = make_app(
+        portable_root,
+        answer_service=FakeAnswerService(),
+        repository=repository,
+    )
+
+    archived = asyncio.run(
+        request(app, "POST", "/api/v1/conversations/conv1/archive")
+    )
+    assert archived.json() == {"ok": True, "archived": True}
+    assert repository.archived["conv1"] is True
+
+    active_list = asyncio.run(request(app, "GET", "/api/v1/conversations"))
+    assert active_list.json() == []
+
+    archived_list = asyncio.run(
+        request(app, "GET", "/api/v1/conversations?archived=true")
+    )
+    assert archived_list.json()[0]["id"] == "conv1"
+
+    restored = asyncio.run(
+        request(app, "POST", "/api/v1/conversations/conv1/unarchive")
+    )
+    assert restored.json() == {"ok": True, "archived": False}
+    assert repository.archived["conv1"] is False
+
+
+def test_archive_unknown_conversation_returns_404(portable_root) -> None:
+    app = make_app(
+        portable_root,
+        answer_service=FakeAnswerService(),
+        repository=FakeRepository(),
+    )
+
+    response = asyncio.run(
+        request(app, "POST", "/api/v1/conversations/missing/archive")
+    )
+
+    assert response.status_code == 404

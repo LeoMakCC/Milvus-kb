@@ -3,8 +3,8 @@
 个人向量知识库 - 入库脚本 (Milvus + fastembed 本地中文 embedding)
 
 用法:
-  python kb_build.py                    # 扫描默认目录, 增量入库
-  python kb_build.py --dir D:/notes     # 指定文档目录
+  python kb_build.py                    # 扫描当前目录, 增量入库
+  python kb_build.py --dir ./docs       # 指定文档目录
   python kb_build.py --reset            # 清空重建
 """
 import argparse
@@ -22,15 +22,22 @@ from pymilvus import MilvusClient, DataType
 from fastembed import TextEmbedding
 
 # ---------- 配置 ----------
-MILVUS_URI = "http://localhost:19530"
-COLLECTION = "personal_kb"
+MILVUS_URI = os.environ.get("KB_MILVUS_URI", "http://localhost:19530")
+COLLECTION = os.environ.get("KB_COLLECTION", "personal_kb")
 EMBED_MODEL = "BAAI/bge-small-zh-v1.5"   # 中文小模型, 512 维, 首次运行自动下载 ~100MB
 CHUNK_SIZE = 500       # 目标块大小(字符)
 CHUNK_OVERLAP = 80     # 相邻块重叠
 SCAN_EXTS = {".md", ".txt", ".py", ".html"}
-SKIP_DIRS = {".workbuddy", ".git", "node_modules", "__pycache__", "milvus-kb",
-             # 第三方代码库, 不作为个人知识库语料 (如需入库可删除对应行)
-             "MediaCrawler", "taobao-tmall-ref", "minimax-h3"}
+SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    "build",
+    "dist",
+    "data",
+}
 
 
 def iter_documents(root: str):
@@ -96,8 +103,8 @@ def build_schema(client: MilvusClient, dim: int):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="D:/Documents/whatever",
-                    help="要入库的文档目录 (默认当前工作区)")
+    ap.add_argument("--dir", default=os.getcwd(),
+                    help="要入库的文档目录 (默认当前目录)")
     ap.add_argument("--reset", action="store_true", help="清空集合后全量重建")
     args = ap.parse_args()
 

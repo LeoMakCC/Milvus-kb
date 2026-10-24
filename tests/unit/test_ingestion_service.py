@@ -103,6 +103,41 @@ def test_sync_documents_ingests_supported_formats(tmp_path: Path) -> None:
     assert inserted_types == {"markdown", "txt"}
 
 
+def test_sync_files_ingests_selected_document(tmp_path: Path) -> None:
+    path = tmp_path / "selected.md"
+    path.write_text("# 合同\n验收后30日内付款", encoding="utf-8")
+    repository = FakeRepository()
+    store = FakeMilvusStore()
+    service = IngestionService(repository, FakeEmbedder(), store)
+
+    first = service.sync_files("kb1", [path])
+    second = service.sync_files("kb1", [path])
+
+    assert first.scanned == 1
+    assert first.inserted == 1
+    assert first.failed == 0
+    assert first.errors == []
+    assert second.inserted == 0
+    assert second.skipped == 1
+    assert store.ensured == [("kb1", 2)]
+    assert len(store.inserted) == 1
+
+
+def test_sync_files_reports_missing_and_unsupported(tmp_path: Path) -> None:
+    unsupported = tmp_path / "notes.exe"
+    unsupported.write_bytes(b"binary")
+    missing = tmp_path / "missing.pdf"
+    service = IngestionService(FakeRepository(), FakeEmbedder(), FakeMilvusStore())
+
+    result = service.sync_files("kb1", [unsupported, missing])
+
+    assert result.scanned == 2
+    assert result.failed == 2
+    assert len(result.errors) == 2
+    assert "不支持" in result.errors[0]["error"]
+    assert result.errors[1]["error"] == "文件不存在"
+
+
 class FakeEmailIngestionService:
     def sync_emails(self, kb_id: str, directory: Path) -> SyncResult:
         return SyncResult(

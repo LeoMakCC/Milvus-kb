@@ -47,6 +47,9 @@
             </button>
           </div>
           <div id="conversationList" class="conversation-list"></div>
+          <button id="toggleArchivedButton" class="text-button" type="button">
+            查看已归档
+          </button>
         </section>
       </aside>
 
@@ -106,6 +109,9 @@
               <span>检索</span>
             </button>
           </div>
+          <p class="muted results-hint">
+            结果按相关度从高到低排列，自动附带命中位置前后的相邻内容，同一文档里相邻的命中会合并；分数是「向量 + 关键词」混合检索的融合分（RRF），只用于排序比较。
+          </p>
           <div id="searchResults" class="results"></div>
         </section>
 
@@ -121,12 +127,35 @@
               <i data-lucide="folder"></i>
               <input id="directoryInput" type="text" placeholder="文档目录">
             </div>
+            <button id="browseDirectoryButton" class="ghost-button" type="button">
+              <i data-lucide="folder-open"></i>
+              <span>选择目录</span>
+            </button>
+            <button id="addFilesButton" class="ghost-button" type="button">
+              <i data-lucide="file-plus"></i>
+              <span>添加文件</span>
+            </button>
             <button id="syncButton" class="primary-button" type="button">
               <i data-lucide="refresh-cw"></i>
-              <span>同步</span>
+              <span>同步目录</span>
             </button>
           </div>
+          <p class="muted kb-hint">
+            「同步目录」递归扫描文件夹（含子目录）与邮件文件，内容未变的文件自动跳过，改动过的重建索引；
+            「添加文件」只入库你选中的文档，适合临时补充，不处理邮件。
+          </p>
           <div id="syncResult" class="sync-result muted"></div>
+          <div class="kb-docs">
+            <div class="kb-docs-head">
+              <span>已入库文档</span>
+              <button id="refreshDocumentsButton" class="ghost-button" type="button">
+                <i data-lucide="refresh-cw"></i>
+                <span>刷新</span>
+              </button>
+            </div>
+            <div id="documentsSummary" class="muted kb-hint"></div>
+            <div id="documentsList" class="doc-list"></div>
+          </div>
         </section>
 
         <section id="modelsPanel" class="panel hidden">
@@ -139,6 +168,9 @@
                 </button>
               </div>
               <div id="providerList" class="provider-list"></div>
+              <p class="muted provider-hint">
+                设为默认的服务用于知识库问答，同一时间只有一个默认服务。
+              </p>
             </div>
             <form id="providerForm" class="provider-form">
               <input type="hidden" id="providerId">
@@ -186,18 +218,50 @@
             <div id="settingsResult" class="sync-result muted"></div>
           </form>
           <div class="backup-block">
-            <div class="sidebar-head"><span>备份</span></div>
-            <div class="toolbar">
-              <button id="createBackupButton" class="primary-button" type="button">
-                <i data-lucide="archive"></i>
-                <span>创建备份</span>
-              </button>
-              <button id="restoreBackupButton" class="ghost-button" type="button">
-                <i data-lucide="rotate-ccw"></i>
-                <span>恢复</span>
-              </button>
+            <div class="sidebar-head"><span>备份与恢复</span></div>
+
+            <div class="backup-group">
+              <div class="backup-group-title">创建备份</div>
+              <div class="toolbar">
+                <button id="createBackupButton" class="primary-button" type="button">
+                  <i data-lucide="archive"></i>
+                  <span>创建备份</span>
+                </button>
+                <button id="chooseBackupDirButton" class="ghost-button" type="button">
+                  <i data-lucide="folder-open"></i>
+                  <span>选择保存位置</span>
+                </button>
+              </div>
+              <div class="input-shell">
+                <i data-lucide="folder"></i>
+                <input id="backupDirInput" type="text" placeholder="保存位置（留空则保存到 data\backups）">
+              </div>
+              <p class="muted kb-hint">
+                备份包含元数据（知识库与文档清单、会话、模型配置）和可选的向量数据，不含原始文档与模型缓存；可保存到 U 盘等自定义目录。
+              </p>
             </div>
-            <input id="restorePath" class="full-input" type="text" placeholder="备份文件路径">
+
+            <div class="backup-group">
+              <div class="backup-group-title">恢复备份</div>
+              <div class="toolbar">
+                <div class="input-shell grow">
+                  <i data-lucide="file-archive"></i>
+                  <input id="restorePath" type="text" placeholder="要恢复的备份文件（.zip）">
+                </div>
+                <button id="browseBackupButton" class="ghost-button" type="button">
+                  <i data-lucide="folder-open"></i>
+                  <span>选择 .zip</span>
+                </button>
+                <button id="restoreBackupButton" class="primary-button" type="button">
+                  <i data-lucide="rotate-ccw"></i>
+                  <span>恢复</span>
+                </button>
+              </div>
+              <p class="muted kb-hint">
+                这里选择的是要恢复的备份文件；恢复会覆盖当前元数据，并自动生成 pre-restore 安全副本。
+              </p>
+            </div>
+
             <div id="backupStatus" class="sync-result muted"></div>
           </div>
           <div class="backup-block">

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -16,6 +17,8 @@ from knowledgeqa.db.connection import connect
 from knowledgeqa.db.migrations import apply_migrations, current_version
 from knowledgeqa.docker_control import DockerController
 from knowledgeqa.embedding import FastEmbedEmbedder
+from knowledgeqa.folder_dialog import select_files as pick_files
+from knowledgeqa.folder_dialog import select_folder
 from knowledgeqa.instance_lock import InstanceLock
 from knowledgeqa.lifecycle import ExitChoice, ExitCoordinator, ExitDecision
 from knowledgeqa.logging_setup import configure_logging
@@ -39,6 +42,28 @@ def portable_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def cached_probe(
+    probe: Callable[[], bool],
+    ttl: float = 10.0,
+    clock=time.monotonic,
+) -> Callable[[], bool]:
+    """缓存状态探测结果，避免每次状态请求都重新连接外部服务。"""
+    state = {"checked_at": None, "value": False}
+
+    def wrapper() -> bool:
+        now = clock()
+        checked_at = state["checked_at"]
+        if checked_at is None or now - checked_at >= ttl:
+            try:
+                state["value"] = bool(probe())
+            except Exception:
+                state["value"] = False
+            state["checked_at"] = now
+        return state["value"]
+
+    return wrapper
+
+
 def build_status(
     settings: Settings,
     jobs_running: Callable[[], int],
@@ -55,6 +80,24 @@ def build_status(
         db_schema_version=db_schema_version,
         jobs_running=jobs_running,
     ).snapshot()
+
+
+class DesktopApi:
+    """暴露给前端 JS 的桌面能力。"""
+
+    def select_directory(self, start: str = "") -> str:
+        return select_folder(title="选择文档目录", initial=start)
+
+    def select_files(self, start: str = "") -> list[str]:
+        return pick_files(title="选择文档", initial=start)
+
+    def select_backup_file(self, start: str = "") -> str:
+        files = pick_files(
+            title="选择备份文件",
+            initial=start,
+            file_filter="备份文件|*.zip|所有文件|*.*",
+        )
+        return files[0] if files else ""
 
 
 def request_exit(
@@ -157,7 +200,7 @@ def main(docker_controller: DockerController | None = None) -> int:
             jobs_running=lambda: 0,
             docker_available=controller.is_available,
             docker_running=controller.is_running,
-            milvus_available=lambda: False,
+            milvus_available=cached_probe(milvus_store.is_available),
             db_schema_version=lambda: schema_version,
         ),
         repository=repository,
@@ -170,6 +213,7 @@ def main(docker_controller: DockerController | None = None) -> int:
         backup_service=backup_service,
         restore_service=restore_service,
         docker_controller=controller,
+        milvus_store=milvus_store,
     )
     runner = ServerRunner(app, settings)
     tray = None
@@ -178,12 +222,14 @@ def main(docker_controller: DockerController | None = None) -> int:
         runner.start()
         if not runner.wait_until_ready():
             return 1
+        desktop_api = DesktopApi()
         window = webview.create_window(
             "KnowledgeQA",
             f"http://{settings.host}:{settings.port}",
             width=1180,
             height=780,
             min_size=(920, 620),
+            js_api=desktop_api,
         )
         if hasattr(window, "events"):
             window.events.closing += lambda: (window.hide(), False)[1]

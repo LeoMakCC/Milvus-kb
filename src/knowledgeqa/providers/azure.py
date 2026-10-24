@@ -42,16 +42,5 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
         }
 
     def test_connection(self):
-        try:
-            response = self._get_client().get(
-                (
-                    f"{self._endpoint}/openai/models"
-                    f"?api-version={self._api_version}"
-                ),
-                headers=self._request_headers(),
-                timeout=10,
-            )
-            response.raise_for_status()
-            return True, "ok"
-        except Exception as exc:
-            return False, str(exc)
+        # Azure OpenAI 不提供 /models，直接用一次极小对话验证部署是否可用
+        return self._probe_chat()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -37,8 +37,8 @@ def create_chat_router(answer_service, repository) -> APIRouter:
         )
 
     @router.get("/conversations")
-    def list_conversations():
-        return repository.list_conversations()
+    def list_conversations(archived: bool = False):
+        return repository.list_conversations(only_archived=archived)
 
     @router.get("/conversations/{conversation_id}")
     def get_conversation(conversation_id: str):
@@ -46,5 +46,25 @@ def create_chat_router(answer_service, repository) -> APIRouter:
             "conversation": repository.get_conversation(conversation_id),
             "messages": repository.list_messages(conversation_id),
         }
+
+    @router.post("/conversations/{conversation_id}/archive")
+    def archive_conversation(conversation_id: str):
+        conversation = repository.set_conversation_archived(
+            conversation_id,
+            True,
+        )
+        if conversation is None:
+            raise HTTPException(404, "Conversation not found")
+        return {"ok": True, "archived": True}
+
+    @router.post("/conversations/{conversation_id}/unarchive")
+    def unarchive_conversation(conversation_id: str):
+        conversation = repository.set_conversation_archived(
+            conversation_id,
+            False,
+        )
+        if conversation is None:
+            raise HTTPException(404, "Conversation not found")
+        return {"ok": True, "archived": False}
 
     return router

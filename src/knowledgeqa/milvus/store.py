@@ -32,6 +32,48 @@ class MilvusStore:
         if not self.client.has_collection(name):
             create_knowledge_base_collection(self.client, kb_id, dimension)
 
+    def chunks_by_ids(self, kb_id: str, chunk_ids: list[str]) -> list[dict]:
+        """按 chunk_id 批量取回分块文本，用于拼接前后文。"""
+        if not chunk_ids:
+            return []
+        name = collection_name(kb_id)
+        if not self.client.has_collection(name):
+            return []
+        self.client.load_collection(name)
+        quoted = ", ".join(
+            f'"{chunk_id}"' for chunk_id in chunk_ids
+        )
+        rows = self.client.query(
+            name,
+            filter=f"chunk_id in [{quoted}]",
+            output_fields=["chunk_id", "text", "page_no"],
+            limit=len(chunk_ids) + 10,
+        )
+        return [dict(row) for row in rows]
+
+    def drop_collection(self, kb_id: str) -> bool:
+        name = collection_name(kb_id)
+        if not self.client.has_collection(name):
+            return False
+        self.client.drop_collection(name)
+        return True
+
+    def count_entities(self, kb_id: str) -> int:
+        """返回向量库中该知识库的实体（分块）数量。"""
+        name = collection_name(kb_id)
+        if not self.client.has_collection(name):
+            return 0
+        self.client.load_collection(name)
+        result = self.client.query(
+            name,
+            filter="",
+            output_fields=["count(*)"],
+        )
+        if not result:
+            return 0
+        first = result[0]
+        return int(first.get("count(*)") or 0)
+
     def delete_document(self, kb_id: str, document_id: str) -> None:
         self.client.delete(
             collection_name(kb_id),
@@ -51,6 +93,8 @@ class MilvusStore:
         limit: int = 5,
     ) -> list[dict]:
         name = collection_name(kb_id)
+        if not self.client.has_collection(name):
+            return []
         self.client.load_collection(name)
         results = self.client.search(
             name,
@@ -81,6 +125,8 @@ class MilvusStore:
         limit: int = 20,
     ) -> list[dict]:
         name = collection_name(kb_id)
+        if not self.client.has_collection(name):
+            return []
         self.client.load_collection(name)
         dense_request = AnnSearchRequest(
             data=[dense_vector],

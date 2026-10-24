@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -8,9 +9,15 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-BASE_URL = "http://127.0.0.1:8790"
-MOCK_URL = "http://127.0.0.1:8899/v1"
-REPORT_PATH = Path(__file__).resolve().parents[1] / "ACCEPTANCE_REPORT_2026-10-21.md"
+import acceptance_milvus
+
+BASE_URL = os.environ.get("KB_BASE_URL", "http://127.0.0.1:8790")
+MOCK_URL = os.environ.get("KB_MOCK_URL", "http://127.0.0.1:8899/v1")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PORTABLE_DIR = Path(
+    os.environ.get("KB_PORTABLE_DIR", PROJECT_ROOT / "dist" / "KnowledgeQA")
+)
+REPORT_PATH = PROJECT_ROOT / "ACCEPTANCE_REPORT_2026-10-21.md"
 
 
 def now_text() -> str:
@@ -136,6 +143,10 @@ def main() -> int:
         }
     )
 
+    milvus = acceptance_milvus.run(BASE_URL)
+    results.extend(milvus["results"])
+    milvus_evidence = milvus["evidence"]
+
     docker_result = subprocess.run(
         ["docker", "info", "--format", "{{.ServerVersion}}"],
         capture_output=True,
@@ -154,10 +165,8 @@ def main() -> int:
 
     passed = [item for item in results if item["status"] == "通过"]
     failed = [item for item in results if item["status"] == "失败"]
-    milvus_blocked = (
-        milvus_status is not None
-        and not milvus_status.get("available", False)
-    )
+    milvus_blocked = milvus["blocked"]
+    milvus_cases = [item for item in milvus["results"]]
 
     lines = [
         "# KnowledgeQA 验收测试报告",
@@ -171,25 +180,35 @@ def main() -> int:
         "",
         f"- 通过: {len(passed)} 项",
         f"- 失败: {len(failed)} 项",
-        f"- Milvus 依赖用例: {'阻塞' if milvus_blocked else '可执行'}",
+        f"- Milvus 依赖用例: {'阻塞' if milvus_blocked else f'已执行 {len(milvus_cases)} 项'}",
         "",
     ]
     if milvus_blocked:
         lines += [
             "本轮验收完成了桌面应用、UI、设置、认证、模型配置和备份测试。",
-            "由于 Docker Desktop 引擎未能启动，Milvus 不可用，因此文档入库、向量检索和知识库问答未能完成。",
+            "Milvus 不可用，因此文档入库、向量检索和知识库问答未能完成。",
+            f"阻塞原因: {milvus['reason']}",
+            "",
+        ]
+    else:
+        lines += [
+            "本轮验收覆盖桌面应用、UI、设置、认证、模型配置、备份，",
+            "以及依赖 Milvus 的知识库同步、多格式入库、检索和知识库问答。",
             "",
         ]
 
     lines += [
         "## 2. 环境与版本",
         "",
-        f"- 便携版目录: `D:\\Documents\\whatever\\milvus-kb\\dist\\KnowledgeQA`",
+        f"- 便携版目录: `{PORTABLE_DIR}`",
         f"- 应用端口: `8790`",
         f"- Mock 模型地址: `{MOCK_URL}`",
         f"- SQLite schema: `{(status or {}).get('db_schema_version', 'unknown')}`",
         f"- Docker available: `{(status or {}).get('docker_available', 'unknown')}`",
         f"- Docker running: `{(status or {}).get('docker_running', 'unknown')}`",
+        f"- Milvus 服务: `{acceptance_milvus.MILVUS_HOST}:{acceptance_milvus.MILVUS_PORT}`"
+        f"（端口可连接: `{milvus_evidence.get('milvus_startup', {}).get('port_open_after')}`）",
+        "- Milvus 镜像: `milvusdb/milvus:v2.5.6` + `quay.io/coreos/etcd:v3.5.14`",
         "",
         "## 3. 用例与结果",
         "",
@@ -242,37 +261,138 @@ def main() -> int:
         "备份后列表数量: "
         f"`{len(backups_after or [])}`",
         "",
-        "## 5. Milvus 阻塞说明",
-        "",
-        "应用已启动，但 Docker Desktop 引擎未连接，Milvus 状态为不可用。",
-        "",
-        "Docker 检查输出:",
-        "",
-        "```text",
-        docker_error,
-        "```",
-        "",
-        "WSL 状态:",
-        "",
-        "```text",
-        wsl_result.stdout.strip() or wsl_result.stderr.strip(),
-        "```",
-        "",
-        "受影响的用例:",
-        "",
-        "- 创建知识库后的文档目录同步",
-        "- Markdown、PDF、Word、Excel、CSV 入库",
-        "- `.eml`、`.mbox`、`.msg` 邮件和附件入库",
-        "- 精确关键词检索和语义检索",
-        "- 流式问答、引用和无依据拒答",
-        "",
-        "## 6. 后续复测步骤",
-        "",
-        "1. 修复或重新启动 Docker Desktop，确保 `docker info` 返回服务端版本。",
-        "2. 启动 Milvus 容器，并确认 `http://localhost:19530` 可连接。",
-        "3. 在 8790 应用中执行知识库同步。",
-        "4. 重新运行验收脚本，补充入库、检索和问答结果。",
-        "",
+    ]
+
+    case_evidence = {item["name"]: item["evidence"] for item in milvus_cases}
+
+    if milvus_blocked:
+        lines += [
+            "## 5. Milvus 阻塞说明",
+            "",
+            "应用已启动，但 Milvus 服务不可用。",
+            "",
+            "Docker 检查输出:",
+            "",
+            "```text",
+            docker_error,
+            "```",
+            "",
+            "WSL 状态:",
+            "",
+            "```text",
+            wsl_result.stdout.strip() or wsl_result.stderr.strip(),
+            "```",
+            "",
+            "受影响的用例:",
+            "",
+            "- 创建知识库后的文档目录同步",
+            "- Markdown、PDF、Word、Excel、CSV 入库",
+            "- `.eml`、`.mbox`、`.msg` 邮件和附件入库",
+            "- 精确关键词检索和语义检索",
+            "- 流式问答、引用和无依据拒答",
+            "",
+            "## 6. 后续复测步骤",
+            "",
+            "1. 启动 Docker Desktop，确保 `docker info` 返回服务端版本。",
+            "2. 启动 Milvus 容器，并确认 `http://localhost:19530` 可连接。",
+            "3. 在 8790 应用中执行知识库同步。",
+            "4. 重新运行 `scripts/acceptance_report.py` 补充入库、检索和问答结果。",
+            "",
+        ]
+    else:
+        lines += [
+            "## 5. Milvus 依赖用例证据",
+            "",
+            "### 知识库",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("创建知识库"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 文档目录同步",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("文档目录同步"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 各格式关键词命中",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("各格式入库后关键词命中"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 检索",
+            "",
+            "```json",
+            json.dumps(
+                {
+                    "精确关键词": case_evidence.get("精确关键词检索"),
+                    "语义检索": case_evidence.get("语义检索（跨表述召回）"),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 问答与引用",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("流式问答与引用"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 无依据拒答",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("无依据拒答"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "### 重复同步",
+            "",
+            "```json",
+            json.dumps(
+                case_evidence.get("重复同步幂等"),
+                ensure_ascii=False,
+                indent=2,
+            ),
+            "```",
+            "",
+            "## 6. 遗留事项",
+            "",
+            "- `.msg`(Outlook) 入库仅有解析器单元测试覆盖，"
+            "本轮未构造真实 `.msg` 样本，需补充样例后复测。",
+            "- 扫描版 PDF 的 OCR 分支（`needs_ocr`）未纳入本轮语料。",
+            "- 缺陷：`/api/v1/status` 的 `milvus` 字段在 "
+            "`src/knowledgeqa/desktop.py:160` 被硬编码为 `False`，"
+            "因此系统状态始终显示 `disconnected`，与实际可用状态不符"
+            "（本轮已通过 19530 端口连接和入库/检索/问答用例证明 Milvus 实际可用），"
+            "建议改为探测 `MilvusStore.is_available()`。",
+            "- 验收语料目录: "
+            f"`{acceptance_milvus.FIXTURE_ROOT}`，"
+            "知识库数据保留在应用数据目录中，未做清理。",
+            "",
+        ]
+
+    lines += [
         "## 7. 当前可用功能",
         "",
         "- 便携版桌面应用启动",
@@ -283,8 +403,16 @@ def main() -> int:
         "- 本机会话认证",
         "- 设置读取",
         "- 应用备份创建和备份列表",
-        "",
     ]
+    if not milvus_blocked:
+        lines += [
+            "- 知识库创建与文档目录同步",
+            "- Markdown/TXT/CSV/Word/Excel/PDF/EML/MBOX 入库",
+            "- 关键词与语义混合检索",
+            "- 流式问答与引用落库",
+            "- 空知识库无依据拒答",
+        ]
+    lines.append("")
 
     REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
     print(

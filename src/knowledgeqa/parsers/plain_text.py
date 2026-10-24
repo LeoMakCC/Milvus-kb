@@ -21,7 +21,7 @@ class PlainTextParser:
     }
 
     def parse(self, path: Path) -> ParsedDocument:
-        text = path.read_text(encoding="utf-8", errors="ignore").strip()
+        text = path.read_text(encoding="utf-8-sig", errors="ignore").strip()
         doc_type = path.suffix.lower().lstrip(".")
         return ParsedDocument(
             title=path.stem,

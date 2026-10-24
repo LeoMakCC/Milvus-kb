@@ -61,6 +61,60 @@ class Repository:
             ).fetchone()
         return dict(row) if row else None
 
+    def delete_knowledge_base(self, kb_id: str) -> bool:
+        """删除知识库及其全部文档、分块、邮件与任务记录。"""
+        if self.get_knowledge_base(kb_id) is None:
+            return False
+        with connect(self._db_path) as conn:
+            document_ids = [
+                row["id"]
+                for row in conn.execute(
+                    "SELECT id FROM documents WHERE kb_id = ?",
+                    (kb_id,),
+                )
+            ]
+            if document_ids:
+                placeholders = ",".join("?" for _ in document_ids)
+                conn.execute(
+                    "DELETE FROM email_attachments "
+                    f"WHERE email_document_id IN ({placeholders}) "
+                    f"OR attachment_document_id IN ({placeholders})",
+                    document_ids + document_ids,
+                )
+                conn.execute(
+                    f"DELETE FROM emails WHERE document_id IN ({placeholders})",
+                    document_ids,
+                )
+                conn.execute(
+                    f"DELETE FROM chunks WHERE document_id IN ({placeholders})",
+                    document_ids,
+                )
+                conn.execute(
+                    "DELETE FROM document_aliases "
+                    f"WHERE document_id IN ({placeholders})",
+                    document_ids,
+                )
+            conn.execute("DELETE FROM documents WHERE kb_id = ?", (kb_id,))
+            conn.execute("DELETE FROM document_roots WHERE kb_id = ?", (kb_id,))
+            conn.execute("DELETE FROM index_versions WHERE kb_id = ?", (kb_id,))
+            job_ids = [
+                row["id"]
+                for row in conn.execute(
+                    "SELECT id FROM jobs WHERE kb_id = ?",
+                    (kb_id,),
+                )
+            ]
+            if job_ids:
+                job_placeholders = ",".join("?" for _ in job_ids)
+                conn.execute(
+                    f"DELETE FROM job_items WHERE job_id IN ({job_placeholders})",
+                    job_ids,
+                )
+            conn.execute("DELETE FROM jobs WHERE kb_id = ?", (kb_id,))
+            conn.execute("DELETE FROM knowledge_bases WHERE id = ?", (kb_id,))
+            conn.commit()
+        return True
+
     def get_document_by_path(self, kb_id: str, canonical_path: str) -> dict | None:
         with connect(self._db_path) as conn:
             row = conn.execute(
@@ -209,6 +263,21 @@ class Repository:
         with connect(self._db_path) as conn:
             rows = conn.execute(
                 "SELECT * FROM documents WHERE kb_id = ? ORDER BY file_name",
+                (kb_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_documents_with_chunk_counts(self, kb_id: str) -> list[dict]:
+        with connect(self._db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT d.*, COUNT(c.id) AS chunk_count
+                FROM documents d
+                LEFT JOIN chunks c ON c.document_id = d.id
+                WHERE d.kb_id = ?
+                GROUP BY d.id
+                ORDER BY d.file_name
+                """,
                 (kb_id,),
             ).fetchall()
         return [dict(row) for row in rows]
@@ -406,6 +475,7 @@ class Repository:
         kb_ids: list[str],
         provider_name: str | None = None,
         model_name: str | None = None,
+        title: str | None = None,
     ) -> dict:
         conversation_id = uuid4().hex
         now = _utc_now()
@@ -415,10 +485,11 @@ class Repository:
                 INSERT INTO conversations(
                     id, title, kb_ids, provider_name, model_name,
                     created_at, updated_at
-                ) VALUES (?, '新会话', ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     conversation_id,
+                    title or "新会话",
                     json.dumps(kb_ids, ensure_ascii=False),
                     provider_name,
                     model_name,
@@ -429,12 +500,45 @@ class Repository:
             conn.commit()
         return self.get_conversation(conversation_id)
 
-    def list_conversations(self) -> list[dict]:
+    def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        with connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
+                (title, _utc_now(), conversation_id),
+            )
+            conn.commit()
+
+    def list_conversations(self, only_archived: bool = False) -> list[dict]:
+        condition = "IS NOT NULL" if only_archived else "IS NULL"
         with connect(self._db_path) as conn:
             rows = conn.execute(
-                "SELECT * FROM conversations ORDER BY updated_at DESC"
+                f"""
+                SELECT * FROM conversations
+                WHERE archived_at {condition}
+                ORDER BY updated_at DESC
+                """
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def set_conversation_archived(
+        self,
+        conversation_id: str,
+        archived: bool,
+    ) -> dict | None:
+        if self.get_conversation(conversation_id) is None:
+            return None
+        now = _utc_now()
+        with connect(self._db_path) as conn:
+            conn.execute(
+                "UPDATE conversations SET archived_at = ? WHERE id = ?",
+                (now if archived else None, conversation_id),
+            )
+            conn.commit()
+        return self.get_conversation(conversation_id)
 
     def get_conversation(self, conversation_id: str) -> dict | None:
         with connect(self._db_path) as conn:
