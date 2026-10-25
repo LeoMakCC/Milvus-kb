@@ -19,6 +19,10 @@ build/
 dist/
 dist_*/
 
+# Understand-Anything analysis data
+.ua/
+.understand-anything/
+
 # Local runtime data (database, logs, backups, model cache)
 data/
 logs/
